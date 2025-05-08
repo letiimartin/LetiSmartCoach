@@ -4,6 +4,7 @@ import httpx
 import os
 from dotenv import load_dotenv
 from wahoo_api import get_workouts
+from auth_utils import save_tokens, load_tokens
 
 load_dotenv()  
 
@@ -35,15 +36,16 @@ async def wahoo_callback(request: Request):
 
     if response.status_code == 200:
         token_data = response.json()
-        return {
-            "access_token": token_data["access_token"],
-            "refresh_token": token_data["refresh_token"],
-            "expires_in": token_data["expires_in"]
-        }
+        save_tokens(token_data)
+        return JSONResponse(status_code=200, content={"message": "Token guardado exitosamente"})
     else:
         return JSONResponse(status_code=500, content={"error": "Error al obtener token", "details": response.text})
 
 @app.get("/workouts")
-async def workouts():
-    return await get_workouts()
+async def read_workouts(
+    activity_type: str = Query(None),
+    min_date: str = Query(None),       # formato ISO: "2024-01-01T00:00:00Z"
+    min_duration: int = Query(None)    # en minutos
+):
+    return await get_workouts(activity_type, min_date, min_duration)
 
