@@ -2,19 +2,23 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import httpx
 import os
+from dotenv import load_dotenv
+from wahoo_api import get_workouts
+
+load_dotenv()  
 
 app = FastAPI()
 
-CLIENT_ID = "NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s"
-CLIENT_SECRET = "7dYRrjvF6xJDsmHE6BjKK_S-_E8PKzQik95bSKqCM20"
-REDIRECT_URI = "https://letismartcoach.onrender.com/auth/wahoo/callback"
+CLIENT_ID = os.getenv("WAHOO_CLIENT_ID")
+CLIENT_SECRET = os.getenv("WAHOO_CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 TOKEN_URL = "https://api.wahooligan.com/oauth/token"
 
 @app.get("/")
 def root():
     return {"message": "Servidor funcionando ✅"}
 
-@app.get("/auth/wahoo/callback")  # 🔁 aquí estaba el fallo
+@app.get("/auth/wahoo/callback") 
 async def wahoo_callback(request: Request):
     code = request.query_params.get("code")
     if not code:
@@ -38,3 +42,8 @@ async def wahoo_callback(request: Request):
         }
     else:
         return JSONResponse(status_code=500, content={"error": "Error al obtener token", "details": response.text})
+
+@app.get("/workouts")
+async def workouts():
+    return await get_workouts()
+
