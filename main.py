@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import JSONResponse
 import httpx
 import os
 from dotenv import load_dotenv
-from wahoo_api import get_workouts
+from wahoo_api import get_workouts, get_workouts_weekly_load
 from auth_utils import save_tokens, load_tokens
 
 load_dotenv()  
@@ -48,4 +48,9 @@ async def read_workouts(
     min_duration: int = Query(None)    # en minutos
 ):
     return await get_workouts(activity_type, min_date, min_duration)
+
+
+@app.get("/weekly-load")
+async def weekly_load():
+    return await get_workouts_weekly_load()
 
