@@ -52,7 +52,7 @@ async def get_workouts(activity_type: str = None, min_date: str = None, min_dura
             response = await client.get(WORKOUTS_URL, headers=headers)
 
         if response.status_code == 200:
-            workouts = await response.json()
+            workouts = response.json()
 
             # Aplica filtros si se proporcionan
             filtered = []
