@@ -21,7 +21,7 @@ def calculate_best_efforts(user_id: str, workout_id: str, sport: str, metrics: d
                 eff_data = {
                     "user_id": user_id,
                     "sport": sport,
-                    "window": window,
+                    "effort_window": window,
                     "value": avg_power, # Mocked value
                     "unit": "W",
                     "recorded_at": metrics.get("start_time"),

@@ -66,7 +66,7 @@ create table if not exists public.best_efforts (
     id uuid default uuid_generate_v4() primary key,
     user_id uuid references auth.users not null,
     sport text not null,
-    window text not null, -- e.g., '5s', '1m', '20m', '1km'
+    effort_window text not null, -- e.g., '5s', '1m', '20m', '1km'
     value float not null,
     unit text not null,
     recorded_at timestamp with time zone not null,
