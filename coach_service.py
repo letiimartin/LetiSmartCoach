@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from openai import OpenAI
 from supabase_client import get_supabase_client
 from typing import List, Dict
