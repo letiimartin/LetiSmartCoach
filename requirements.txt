@@ -2,3 +2,6 @@ fastapi
 uvicorn[standard]
 httpx
 pytz
+supabase
+python-dotenv
+openai
