@@ -12,8 +12,6 @@ import {
     Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const { width } = Dimensions.get('window');
 import {
     Plus,
     Calendar as CalendarIcon,
@@ -29,6 +27,8 @@ import {
 } from 'lucide-react-native';
 import { MOCK_EVENTS } from '../constants/mocks';
 
+const { width } = Dimensions.get('window');
+
 const EVENT_TYPES = {
     race: { label: 'Carrera', color: '#ffcc00', icon: Trophy },
     social: { label: 'Social', color: '#ff3366', icon: Users },
@@ -40,6 +40,7 @@ export default function CalendarScreen() {
     const [events, setEvents] = useState(MOCK_EVENTS);
     const [isAddModalVisible, setAddModalVisible] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date('2026-01-19')); // Lunes de la semana mock
+    const [selectedDate, setSelectedDate] = useState('2026-01-19');
 
     // Get days of the week starting from Monday
     const weekDays = useMemo(() => {
@@ -55,8 +56,7 @@ export default function CalendarScreen() {
 
     const formatDate = (date) => date.toISOString().split('T')[0];
 
-    const getEventsForDay = (date) => {
-        const dateStr = formatDate(date);
+    const getEventsForDay = (dateStr) => {
         return events.filter(e => {
             if (e.date === dateStr) return true;
             if (e.endDate && dateStr >= e.date && dateStr <= e.endDate) return true;
@@ -65,8 +65,9 @@ export default function CalendarScreen() {
     };
 
     const DayItem = ({ date }) => {
-        const dayEvents = getEventsForDay(date);
-        const isToday = formatDate(date) === '2026-01-22'; // Hardcoded "today" for mock context
+        const dateStr = formatDate(date);
+        const dayEvents = getEventsForDay(dateStr);
+        const isToday = dateStr === '2026-01-22'; // Hardcoded "today" for mock context
 
         return (
             <View style={[styles.dayContainer, isToday && styles.todayContainer]}>
@@ -158,7 +159,23 @@ export default function CalendarScreen() {
                     ))}
                 </ScrollView>
             ) : (
-                <MonthView events={events} />
+                <View style={{ flex: 1 }}>
+                    <MonthView
+                        events={events}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                    />
+                    <ScrollView style={styles.selectedDayEvents}>
+                        <Text style={styles.selectedDayTitle}>
+                            {new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </Text>
+                        {getEventsForDay(selectedDate).length > 0 ? (
+                            getEventsForDay(selectedDate).map(e => <EventCard key={e.id} event={e} />)
+                        ) : (
+                            <Text style={styles.noEventsText}>No hay eventos para este día.</Text>
+                        )}
+                    </ScrollView>
+                </View>
             )}
 
             {/* Add Event Modal Placeholder (Simple Version for Phase 1) */}
@@ -183,7 +200,7 @@ function Badge({ text, color, icon }) {
     );
 }
 
-function MonthView({ events }) {
+function MonthView({ events, selectedDate, onSelectDate }) {
     // Simple mock month view - grid of 31 days
     return (
         <View style={styles.monthContainer}>
@@ -195,16 +212,24 @@ function MonthView({ events }) {
                     const day = i + 1;
                     const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
                     const dayEvents = events.filter(e => e.date === dateStr || (e.endDate && dateStr >= e.date && dateStr <= e.endDate));
+                    const isSelected = dateStr === selectedDate;
 
                     return (
-                        <View key={i} style={styles.monthDay}>
-                            <Text style={styles.monthDayText}>{day}</Text>
+                        <TouchableOpacity
+                            key={i}
+                            style={[
+                                styles.monthDay,
+                                isSelected && styles.selectedDay
+                            ]}
+                            onPress={() => onSelectDate(dateStr)}
+                        >
+                            <Text style={[styles.monthDayText, isSelected && styles.selectedDayText]}>{day}</Text>
                             <View style={styles.markerContainer}>
                                 {dayEvents.slice(0, 3).map(e => (
                                     <View key={e.id} style={[styles.marker, { backgroundColor: EVENT_TYPES[e.type].color }]} />
                                 ))}
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
             </View>
@@ -560,37 +585,48 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     monthContainer: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 12,
+        marginBottom: 10,
     },
     monthTitle: {
         color: '#fff',
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 16,
+        paddingHorizontal: 8,
     },
     monthGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        justifyContent: 'flex-start',
     },
     monthDay: {
-        width: (width - 40 - 48) / 7,
+        width: (width - 40) / 7,
         aspectRatio: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'relative',
+        borderRadius: 12,
+        marginBottom: 4,
+    },
+    selectedDay: {
+        backgroundColor: 'rgba(0, 242, 255, 0.15)',
+        borderWidth: 1,
+        borderColor: '#00f2ff',
     },
     monthDayText: {
+        color: '#909090',
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    selectedDayText: {
         color: '#fff',
-        fontSize: 14,
+        fontWeight: 'bold',
     },
     markerContainer: {
         flexDirection: 'row',
         position: 'absolute',
-        bottom: 4,
-        gap: 2,
+        bottom: 8,
+        gap: 3,
     },
     marker: {
         width: 4,
@@ -598,10 +634,11 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     monthLegend: {
-        marginTop: 24,
+        marginTop: 16,
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 16,
+        paddingHorizontal: 8,
     },
     legendItem: {
         flexDirection: 'row',
@@ -609,7 +646,29 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     legendText: {
-        color: '#909090',
-        fontSize: 12,
+        color: '#707070',
+        fontSize: 11,
+        textTransform: 'uppercase',
+    },
+    selectedDayEvents: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    selectedDayTitle: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 16,
+        textTransform: 'capitalize',
+    },
+    noEventsText: {
+        color: '#606060',
+        fontStyle: 'italic',
+        fontSize: 14,
+        textAlign: 'center',
+        marginTop: 20,
     }
 });
