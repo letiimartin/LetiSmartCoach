@@ -599,14 +599,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'flex-start',
+        rowGap: 8,
     },
     monthDay: {
         width: (width - 40) / 7,
-        aspectRatio: 1,
+        height: 54,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 12,
-        marginBottom: 4,
+        marginBottom: 8,
     },
     selectedDay: {
         backgroundColor: 'rgba(0, 242, 255, 0.15)',
@@ -617,6 +618,7 @@ const styles = StyleSheet.create({
         color: '#909090',
         fontSize: 15,
         fontWeight: '500',
+        marginBottom: 4,
     },
     selectedDayText: {
         color: '#fff',
@@ -624,8 +626,8 @@ const styles = StyleSheet.create({
     },
     markerContainer: {
         flexDirection: 'row',
-        position: 'absolute',
-        bottom: 8,
+        height: 6,
+        alignItems: 'center',
         gap: 3,
     },
     marker: {
