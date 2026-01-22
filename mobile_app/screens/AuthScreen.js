@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     successBox: {
         backgroundColor: 'rgba(48, 209, 88, 0.15)',
         borderWidth: 1,
-        borderColor: 'rgba(48, 209,  green, 0.3)',
+        borderColor: 'rgba(48, 209, 88, 0.3)',
     },
     messageText: {
         color: '#fff',
