@@ -8,9 +8,12 @@ import {
     Modal,
     TextInput,
     Platform,
-    FlatList
+    FlatList,
+    Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 import {
     Plus,
     Calendar as CalendarIcon,
