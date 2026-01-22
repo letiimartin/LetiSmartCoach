@@ -11,18 +11,11 @@ import AuthScreen from './screens/AuthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import WorkoutsScreen from './screens/WorkoutsScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import CalendarScreen from './screens/CalendarScreen';
 
 const Tab = createBottomTabNavigator();
 
 
-// Placeholder for Calendar
-function CalendarPlaceholder() {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0c', justifyContent: 'center', alignItems: 'center' }}>
-      <Calendar color="#00f2ff" size={48} />
-    </View>
-  );
-}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -85,7 +78,7 @@ export default function App() {
         >
           <Tab.Screen name="Home" component={DashboardScreen} />
           <Tab.Screen name="Entrenos" component={WorkoutsScreen} />
-          <Tab.Screen name="Calendario" component={CalendarPlaceholder} />
+          <Tab.Screen name="Calendario" component={CalendarScreen} />
           <Tab.Screen name="Perfil">
             {(props) => <ProfileScreen {...props} onLogout={() => setSession(null)} />}
           </Tab.Screen>

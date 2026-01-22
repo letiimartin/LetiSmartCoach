@@ -38,6 +38,47 @@ export const MOCK_WORKOUTS = [
 ];
 
 export const MOCK_EVENTS = [
-    { id: 1, title: "Gran Fondo Pirineos", date: "2026-02-15", type: "Race", priority: "A" },
-    { id: 2, title: "Cena de equipo", date: "2026-01-30", type: "Social", priority: "C" },
+    {
+        id: 1,
+        title: "Gran Fondo Pirineos",
+        date: "2026-02-15",
+        type: "race",
+        priority: "A",
+        time: "08:00",
+        details: "Objetivo principal de la temporada."
+    },
+    {
+        id: 2,
+        title: "Cena de equipo",
+        date: "2026-01-23",
+        type: "social",
+        impact: "No entreno",
+        time: "21:00"
+    },
+    {
+        id: 3,
+        title: "Ciclo Menstrual",
+        date: "2026-01-20",
+        endDate: "2026-01-22",
+        type: "health",
+        subType: "Ciclo",
+        restriction: "Sin intensidad"
+    },
+    {
+        id: 4,
+        title: "Viaje de trabajo",
+        date: "2026-01-25",
+        endDate: "2026-01-26",
+        type: "health",
+        subType: "Viaje",
+        restriction: "Solo Z1"
+    },
+    {
+        id: 5,
+        title: "Molestia Tendón",
+        date: "2026-01-24",
+        type: "health",
+        subType: "Lesión",
+        restriction: "No correr"
+    }
 ];
