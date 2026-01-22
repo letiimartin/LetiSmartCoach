@@ -65,13 +65,48 @@ export const MOCK_EVENTS = [
         restriction: "Sin intensidad"
     },
     {
-        id: 4,
-        title: "Viaje de trabajo",
+        id: 6,
+        title: "Umbral 3x10'",
+        date: "2026-01-23",
+        type: "workout",
+        sport: "ciclismo",
+        duration: "1h 15m",
+        zone: "Z4/Umbral",
+        intensity: "moderada",
+        status: "Planificado"
+    },
+    {
+        id: 7,
+        title: "Z2 Base Ride",
+        date: "2026-01-24",
+        type: "workout",
+        sport: "ciclismo",
+        duration: "2h 00m",
+        zone: "Z2",
+        intensity: "baja",
+        status: "Planificado"
+    },
+    {
+        id: 8,
+        title: "Trail Recovery",
         date: "2026-01-25",
-        endDate: "2026-01-26",
-        type: "health",
-        subType: "Viaje",
-        restriction: "Solo Z1"
+        type: "workout",
+        sport: "running",
+        duration: "45m",
+        zone: "Z1",
+        intensity: "baja",
+        status: "Planificado"
+    },
+    {
+        id: 9,
+        title: "VO2 Max Intervals",
+        date: "2026-01-21",
+        type: "workout",
+        sport: "running",
+        duration: "1h 00m",
+        zone: "Z5",
+        intensity: "alta",
+        status: "Completado"
     },
     {
         id: 5,
@@ -80,5 +115,14 @@ export const MOCK_EVENTS = [
         type: "health",
         subType: "Lesión",
         restriction: "No correr"
+    },
+    {
+        id: 4,
+        title: "Viaje de trabajo",
+        date: "2026-01-25",
+        endDate: "2026-01-26",
+        type: "health",
+        subType: "Viaje",
+        restriction: "Solo Z1"
     }
 ];

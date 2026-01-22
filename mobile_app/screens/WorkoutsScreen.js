@@ -2,9 +2,27 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Target, ChevronRight } from 'lucide-react-native';
-import { MOCK_WORKOUTS } from '../constants/mocks';
+import { calendarService } from '../services/calendarService';
+import { ActivityIndicator } from 'react-native';
 
 export default function WorkoutsScreen() {
+    const [workouts, setWorkouts] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        calendarService.getWorkouts().then(data => {
+            setWorkouts(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator color="#00f2ff" />
+            </SafeAreaView>
+        );
+    }
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>

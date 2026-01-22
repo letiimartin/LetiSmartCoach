@@ -4,12 +4,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Activity, Heart, Target, LifeBuoy, Settings, LogOut, ChevronRight, Edit3, Plus, Info } from 'lucide-react-native';
 import { MOCK_ATHLETE } from '../constants/mocks';
 
+import { profileService } from '../services/profileService';
+
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ onLogout }) {
-    const athlete = MOCK_ATHLETE;
+    const [athlete, setAthlete] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
 
-    // Calculo de completitud (mock logic)
+    React.useEffect(() => {
+        profileService.getProfile().then(data => {
+            setAthlete(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading || !athlete) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator color="#00f2ff" />
+            </SafeAreaView>
+        );
+    }
+
+    // Calculo de completitud
     const fields = ['age', 'height_cm', 'weight_kg', 'occupation', 'level', 'profile_type', 'ftp_w', 'running_pace', 'motivation', 'motivators', 'fav_races', 'fav_workouts', 'schedule', 'stress', 'social_life', 'free_time'];
     const filledFields = fields.filter(f => athlete[f] !== null && athlete[f] !== "").length;
     const completionPercent = Math.round((filledFields / fields.length) * 100);

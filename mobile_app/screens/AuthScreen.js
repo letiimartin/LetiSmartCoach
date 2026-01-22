@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+    Platform,
+    KeyboardAvoidingView,
+    ScrollView,
+    TouchableWithoutFeedback,
+    Keyboard
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '../lib/supabase';
+import { authService } from '../services/authService';
 import { Zap } from 'lucide-react-native';
 
 export default function AuthScreen({ onLogin }) {
@@ -22,12 +34,10 @@ export default function AuthScreen({ onLogin }) {
 
         try {
             if (isSignUp) {
-                const { error } = await supabase.auth.signUp({ email, password });
-                if (error) throw error;
+                await authService.signUp(email, password);
                 setMessage({ type: 'success', content: '¡Registro casi listo! Revisa tu email para confirmar tu cuenta.' });
             } else {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+                await authService.signIn(email, password);
                 onLogin();
             }
         } catch (error) {
@@ -39,62 +49,72 @@ export default function AuthScreen({ onLogin }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
-                <View style={styles.logoContainer}>
-                    <Zap size={64} color="#00f2ff" />
-                    <Text style={styles.title}>LetiSmartCoach</Text>
-                    <Text style={styles.subtitle}>Mobile Phase 1</Text>
-                </View>
-
-                <View style={styles.form}>
-                    {message.content ? (
-                        <View style={[styles.messageBox, message.type === 'error' ? styles.errorBox : styles.successBox]}>
-                            <Text style={styles.messageText}>{message.content}</Text>
-                        </View>
-                    ) : null}
-
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Email"
-                        placeholderTextColor="#909090"
-                        value={email}
-                        onChangeText={(text) => setEmail(text.trim())}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Password"
-                        placeholderTextColor="#909090"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
-
-                    <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
-                        onPress={handleAuth}
-                        disabled={loading}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        {loading ? (
-                            <ActivityIndicator color="#000" />
-                        ) : (
-                            <Text style={styles.buttonText}>
-                                {isSignUp ? 'Crear Cuenta' : 'Entrar'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
+                        <View style={styles.logoContainer}>
+                            <Zap size={64} color="#00f2ff" />
+                            <Text style={styles.title}>LetiSmartCoach</Text>
+                            <Text style={styles.subtitle}>Mobile Phase 1</Text>
+                        </View>
 
-                    <TouchableOpacity onPress={() => {
-                        setIsSignUp(!isSignUp);
-                        setMessage({ type: '', content: '' });
-                    }}>
-                        <Text style={styles.switchText}>
-                            {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+                        <View style={styles.form}>
+                            {message.content ? (
+                                <View style={[styles.messageBox, message.type === 'error' ? styles.errorBox : styles.successBox]}>
+                                    <Text style={styles.messageText}>{message.content}</Text>
+                                </View>
+                            ) : null}
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email"
+                                placeholderTextColor="#909090"
+                                value={email}
+                                onChangeText={(text) => setEmail(text.trim())}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Password"
+                                placeholderTextColor="#909090"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                            />
+
+                            <TouchableOpacity
+                                style={[styles.button, loading && styles.buttonDisabled]}
+                                onPress={handleAuth}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#000" />
+                                ) : (
+                                    <Text style={styles.buttonText}>
+                                        {isSignUp ? 'Crear Cuenta' : 'Entrar'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={() => {
+                                setIsSignUp(!isSignUp);
+                                setMessage({ type: '', content: '' });
+                            }}>
+                                <Text style={styles.switchText}>
+                                    {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -104,8 +124,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0c',
     },
-    content: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         padding: 24,
         justifyContent: 'center',
     },

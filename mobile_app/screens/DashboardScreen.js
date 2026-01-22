@@ -2,9 +2,27 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, Activity, Clock, Trophy } from 'lucide-react-native';
-import { MOCK_ATHLETE } from '../constants/mocks';
+import { profileService } from '../services/profileService';
+import { ActivityIndicator } from 'react-native';
 
 export default function DashboardScreen() {
+    const [athlete, setAthlete] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        profileService.getProfile().then(data => {
+            setAthlete(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading || !athlete) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator color="#00f2ff" />
+            </SafeAreaView>
+        );
+    }
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
