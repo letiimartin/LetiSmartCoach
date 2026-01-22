@@ -5,12 +5,12 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    SafeAreaView,
     Modal,
     TextInput,
     Platform,
     FlatList
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     Plus,
     Calendar as CalendarIcon,
