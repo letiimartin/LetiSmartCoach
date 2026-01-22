@@ -340,34 +340,37 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     sectionContent: {
-        gap: 12,
+        // No gap here to use margins for children
     },
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        justifyContent: 'space-between',
     },
     row: {
         flexDirection: 'row',
-        gap: 12,
+        justifyContent: 'space-between',
+        marginBottom: 12,
     },
     infoItem: {
-        flex: 1,
-        minWidth: '45%',
+        width: (width - 64) / 2, // Accounting for section padding (16*2) and screen padding (20*2) isn't exact here but 48% is safer
+        width: '48%',
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
         padding: 12,
         borderRadius: 12,
-        justifyContent: 'center',
+        marginBottom: 12,
     },
     fullWidthItem: {
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
         padding: 12,
         borderRadius: 12,
+        marginBottom: 12,
     },
     detailItem: {
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
         padding: 12,
         borderRadius: 12,
+        marginBottom: 12,
         gap: 4,
     },
     label: {
@@ -375,7 +378,7 @@ const styles = StyleSheet.create({
         color: '#707070',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
-        marginBottom: 4,
+        marginBottom: 6,
     },
     value: {
         fontSize: 15,
