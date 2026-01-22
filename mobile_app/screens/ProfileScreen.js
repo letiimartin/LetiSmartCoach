@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Activity, Heart, Target, LifeBuoy, Settings, LogOut, ChevronRight, Edit3, Plus, Info } from 'lucide-react-native';
-import { MOCK_ATHLETE } from '../constants/mocks';
 
 import { profileService } from '../services/profileService';
 

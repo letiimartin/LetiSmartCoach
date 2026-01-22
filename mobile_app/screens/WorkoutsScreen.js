@@ -31,7 +31,7 @@ export default function WorkoutsScreen() {
             </View>
 
             <FlatList
-                data={MOCK_WORKOUTS}
+                data={workouts}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.list}
                 renderItem={({ item }) => (

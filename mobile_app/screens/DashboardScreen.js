@@ -27,15 +27,15 @@ export default function DashboardScreen() {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.header}>
-                    <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{MOCK_ATHLETE.name}</Text></Text>
+                    <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{athlete.name}</Text></Text>
                     <Text style={styles.subGreeting}>Tu resumen semanal está listo.</Text>
                 </View>
 
                 <View style={styles.statsGrid}>
-                    <StatCard icon={<Activity color="#00f2ff" />} label="Carga" value={MOCK_ATHLETE.weekly_tss} unit="TSS" />
+                    <StatCard icon={<Activity color="#00f2ff" />} label="Carga" value={athlete.weekly_tss} unit="TSS" />
                     <StatCard icon={<Clock color="#00f2ff" />} label="Volumen" value="12.5" unit="h" />
-                    <StatCard icon={<Zap color="#00f2ff" />} label="FTP" value={MOCK_ATHLETE.ftp} unit="W" />
-                    <StatCard icon={<Trophy color="#00f2ff" />} label="Carrera" value={MOCK_ATHLETE.next_race_days} unit="días" />
+                    <StatCard icon={<Zap color="#00f2ff" />} label="FTP" value={athlete.ftp_w} unit="W" />
+                    <StatCard icon={<Trophy color="#00f2ff" />} label="Carrera" value={athlete.next_race_days} unit="días" />
                 </View>
 
                 <View style={styles.nextSessionSection}>
