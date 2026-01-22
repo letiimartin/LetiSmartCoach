@@ -24,9 +24,9 @@ export const MOCK_ATHLETE = {
     fav_workouts: "Series en subida (SST) y tiradas largas en Z2 por naturaleza",
     // 5. Contexto vital
     schedule: "Mañanas (antes del trabajo)",
-    stress: "Medio",
+    stress: null,
     social_life: "Sí, activa los fines de semana",
-    free_time: "Activo (senderismo, café con amigos)",
+    free_time: "",
     weekly_tss: 450,
     next_race_days: 15,
 };
