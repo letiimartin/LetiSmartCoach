@@ -1,4 +1,4 @@
-import { MOCK_EVENTS } from '../constants/mocks';
+import { MOCK_EVENTS } from '../data/mocks';
 
 export const calendarService = {
     async getEvents() {

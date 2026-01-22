@@ -1,4 +1,4 @@
-import { MOCK_ATHLETE } from '../constants/mocks';
+import { MOCK_ATHLETE } from '../data/mocks';
 
 export const profileService = {
     async getProfile() {
