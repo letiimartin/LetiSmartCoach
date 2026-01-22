@@ -10,26 +10,10 @@ import { supabase } from './lib/supabase';
 import AuthScreen from './screens/AuthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import WorkoutsScreen from './screens/WorkoutsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
-function ProfileScreen({ onLogout }) {
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    onLogout();
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#0a0a0c', justifyContent: 'center', alignItems: 'center' }}>
-      <TouchableOpacity
-        style={{ backgroundColor: '#ff453a', padding: 16, borderRadius: 12 }}
-        onPress={handleLogout}
-      >
-        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 // Placeholder for Calendar
 function CalendarPlaceholder() {
@@ -103,7 +87,7 @@ export default function App() {
           <Tab.Screen name="Entrenos" component={WorkoutsScreen} />
           <Tab.Screen name="Calendario" component={CalendarPlaceholder} />
           <Tab.Screen name="Perfil">
-            {() => <ProfileScreen onLogout={() => setSession(null)} />}
+            {(props) => <ProfileScreen {...props} onLogout={() => setSession(null)} />}
           </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>

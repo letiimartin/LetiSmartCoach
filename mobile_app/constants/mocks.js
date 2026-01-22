@@ -1,8 +1,32 @@
 export const MOCK_ATHLETE = {
-    name: "Atleta Leti",
-    ftp: 235,
-    weight: 60,
-    sport: "Cycling & Trail Running",
+    name: "Leti Martín",
+    avatar: "LM",
+    sport_focus: "Ciclismo & Trail Running",
+    // 2. Información general
+    age: 24,
+    gender: "Femenino",
+    height_cm: 165,
+    weight_kg: 60,
+    occupation: "Diseñadora UX / Desarrolladora",
+    // 3. Perfil deportivo
+    level: "Competitivo (Amateur)",
+    profile_type: "Escaladora / Diesel",
+    ftp_w: 235,
+    running_pace: "4:15 min/km",
+    zones: {
+        power: ["Z1: <130W", "Z2: 130-175W", "Z3: 176-210W", "Z4: 211-245W", "Z5: >245W"],
+        hr: ["Z1: <140", "Z2: 140-155", "Z3: 156-168", "Z4: 169-180", "Z5: >181"]
+    },
+    // 4. Preferencias y motivación
+    motivation: "Competición y superación personal",
+    motivators: "Ver progreso en los vatios y completar retos exigentes",
+    fav_races: "Carreras de montaña técnicas y puertos largos de carretera",
+    fav_workouts: "Series en subida (SST) y tiradas largas en Z2 por naturaleza",
+    // 5. Contexto vital
+    schedule: "Mañanas (antes del trabajo)",
+    stress: "Medio",
+    social_life: "Sí, activa los fines de semana",
+    free_time: "Activo (senderismo, café con amigos)",
     weekly_tss: 450,
     next_race_days: 15,
 };
