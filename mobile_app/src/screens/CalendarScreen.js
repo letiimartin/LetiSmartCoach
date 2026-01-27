@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, TextInput } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, TextInput, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Activity, Trophy, Users, HeartPulse, Plus, X } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
@@ -9,6 +9,7 @@ import ImpactCard from '../components/ImpactCard';
 import { getWeekDays, getMonthData, formatDate } from '../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 50;
 
 const EVENT_TYPES = {
     workout: { label: 'Entreno', color: '#00f2ff', icon: Activity, priority: 1 },
@@ -41,6 +42,22 @@ export default function CalendarScreen({ navigation }) {
         // Sync selected date if it's not in the new range (optional, for UX)
         // For now just change range
     };
+
+    // PanResponder for Swipe
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                return Math.abs(gestureState.dx) > 10; // Trigger on small movements
+            },
+            onPanResponderRelease: (evt, gestureState) => {
+                if (gestureState.dx > SWIPE_THRESHOLD) {
+                    changePivot(-1); // Swipe Right -> Previous
+                } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+                    changePivot(1); // Swipe Left -> Next
+                }
+            },
+        })
+    ).current;
 
     const dayEvents = events.filter(e => e.date === selectedDate);
 
@@ -99,38 +116,40 @@ export default function CalendarScreen({ navigation }) {
                 </View>
             </View>
 
-            {viewMode === 'week' ? (
-                <View style={styles.weekStrip}>
-                    {weekDays.map((d) => {
-                        const isSelected = d.date === selectedDate;
-                        const hasWorkout = events.some(e => e.date === d.date && e.type === 'workout');
-                        const hasEvent = events.some(e => e.date === d.date && e.type !== 'workout');
+            <View {...panResponder.panHandlers} style={styles.swipeContainer}>
+                {viewMode === 'week' ? (
+                    <View style={styles.weekStrip}>
+                        {weekDays.map((d) => {
+                            const isSelected = d.date === selectedDate;
+                            const hasWorkout = events.some(e => e.date === d.date && e.type === 'workout');
+                            const hasEvent = events.some(e => e.date === d.date && e.type !== 'workout');
 
-                        return (
-                            <TouchableOpacity
-                                key={d.date}
-                                style={[styles.dayCol, isSelected && styles.dayColSelected]}
-                                onPress={() => setSelectedDate(d.date)}
-                            >
-                                <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>{d.label}</Text>
-                                <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{d.day}</Text>
-                                <View style={styles.dotsRow}>
-                                    {hasWorkout && <View style={[styles.dot, { backgroundColor: '#00f2ff' }]} />}
-                                    {hasEvent && <View style={[styles.dot, { backgroundColor: '#ffcc00' }]} />}
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-            ) : (
-                <MonthView
-                    monthData={monthData}
-                    events={events}
-                    selectedDate={selectedDate}
-                    onSelectDate={setSelectedDate}
-                    pivotDate={pivotDate}
-                />
-            )}
+                            return (
+                                <TouchableOpacity
+                                    key={d.date}
+                                    style={[styles.dayCol, isSelected && styles.dayColSelected]}
+                                    onPress={() => setSelectedDate(d.date)}
+                                >
+                                    <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>{d.label}</Text>
+                                    <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{d.day}</Text>
+                                    <View style={styles.dotsRow}>
+                                        {hasWorkout && <View style={[styles.dot, { backgroundColor: '#00f2ff' }]} />}
+                                        {hasEvent && <View style={[styles.dot, { backgroundColor: '#ffcc00' }]} />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                ) : (
+                    <MonthView
+                        monthData={monthData}
+                        events={events}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        pivotDate={pivotDate}
+                    />
+                )}
+            </View>
 
             <ScrollView contentContainerStyle={styles.eventList}>
                 <View style={styles.listHeader}>
@@ -303,6 +322,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.05)',
         padding: 4,
         borderRadius: 8,
+    },
+    swipeContainer: {
+        minHeight: 100, // Ensure it's touchable even on small weeks
     },
     weekRange: {
         fontSize: 14,
