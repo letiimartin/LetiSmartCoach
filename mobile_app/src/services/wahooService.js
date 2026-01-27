@@ -92,18 +92,25 @@ export const wahooService = {
         if (!tokenData) throw new Error('Not connected to Wahoo');
 
         // 2. Fetch from Wahoo API (Mocked for MVP until real creds)
-        const mockActivities = [
-            {
-                id: 'wahoo_123_' + Date.now(),
-                name: 'Morning Ride',
-                type: 'cycling',
-                start_time: new Date().toISOString(),
-                duration: 3600, // 1h
-                distance: 25000, // 25km
-                average_heartrate: 145,
-                average_power: 180
-            }
-        ];
+        // Simulate fetching last 7 days of history
+        const mockActivities = [];
+        const today = new Date();
+
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i - 1); // Days in the past
+
+            mockActivities.push({
+                id: `wahoo_hist_${i}_` + date.getTime(),
+                name: i % 2 === 0 ? 'Entreno Aeróbico' : 'Salida en Bici',
+                type: i % 2 === 0 ? 'running' : 'cycling',
+                start_time: date.toISOString(),
+                duration: 3600 + (i * 300), // Variable duration
+                distance: 10000 + (i * 2000),
+                average_heartrate: 135 + i,
+                average_power: 150 + (i * 10)
+            });
+        }
 
         // 3. Upsert to `workouts` table with deduplication
         for (const act of mockActivities) {
