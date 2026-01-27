@@ -77,7 +77,19 @@ export const calendarService = {
                 .single();
 
             if (error) throw error;
-            return data;
+
+            // Map to UI format before returning
+            return {
+                id: data.id,
+                title: data.title,
+                date: data.start_dt.split('T')[0],
+                start_dt: data.start_dt,
+                end_dt: data.end_dt,
+                type: data.type,
+                description: data.details_json?.description || '',
+                priority: data.priority || 'medium',
+                restriction: data.constraints_json?.is_restriction || false
+            };
         } catch (error) {
             console.error("Error adding event:", error);
             throw error;
