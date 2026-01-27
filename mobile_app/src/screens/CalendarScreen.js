@@ -6,6 +6,7 @@ import { useWorkouts } from '../context/WorkoutsContext';
 import WorkoutCard from '../components/WorkoutCard';
 import EventCard from '../components/EventCard';
 import ImpactCard from '../components/ImpactCard';
+import { getWeekDays, getMonthData, formatDate } from '../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -20,20 +21,26 @@ const EVENT_TYPES = {
 export default function CalendarScreen({ navigation }) {
     const { events, updateWorkoutStatus, addEvent } = useWorkouts();
     const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
-    const [selectedDate, setSelectedDate] = useState('2026-01-22');
+    const [pivotDate, setPivotDate] = useState(new Date('2026-01-22')); // Pivot for dynamic ranges
+    const [selectedDate, setSelectedDate] = useState(formatDate(new Date('2026-01-22')));
     const [modalVisible, setModalVisible] = useState(false);
     const [newEvent, setNewEvent] = useState({ title: '', type: 'social', description: '' });
 
-    // Hardcoded week for Phase 1 (TODO: make dynamic in Phase 4)
-    const weekDays = [
-        { label: 'Lun', date: '2026-01-19', day: 19 },
-        { label: 'Mar', date: '2026-01-20', day: 20 },
-        { label: 'Mié', date: '2026-01-21', day: 21 },
-        { label: 'Jue', date: '2026-01-22', day: 22 },
-        { label: 'Vie', date: '2026-01-23', day: 23 },
-        { label: 'Sáb', date: '2026-01-24', day: 24 },
-        { label: 'Dom', date: '2026-01-25', day: 25 },
-    ];
+    // Dynamic ranges
+    const weekDays = getWeekDays(pivotDate);
+    const monthData = getMonthData(pivotDate);
+
+    const changePivot = (direction) => {
+        const next = new Date(pivotDate);
+        if (viewMode === 'week') {
+            next.setDate(pivotDate.getDate() + (direction * 7));
+        } else {
+            next.setMonth(pivotDate.getMonth() + direction);
+        }
+        setPivotDate(next);
+        // Sync selected date if it's not in the new range (optional, for UX)
+        // For now just change range
+    };
 
     const dayEvents = events.filter(e => e.date === selectedDate);
 
@@ -66,8 +73,15 @@ export default function CalendarScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.monthTitle}>Enero 2026</Text>
-                    <Text style={styles.weekRange}>Semana 4</Text>
+                    <Text style={styles.monthTitle}>{monthData.monthName} {monthData.year}</Text>
+                    <View style={styles.navControls}>
+                        <TouchableOpacity onPress={() => changePivot(-1)} style={styles.navBtn}>
+                            <ChevronLeft size={20} color="#909090" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => changePivot(1)} style={styles.navBtn}>
+                            <ChevronRight size={20} color="#909090" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <View style={styles.viewSwitcher}>
                     <TouchableOpacity
@@ -197,11 +211,9 @@ export default function CalendarScreen({ navigation }) {
     );
 }
 
-function MonthView({ events, selectedDate, onSelectDate }) {
-    // January 2026 starts on a Thursday (Mon=0, Tue=1, Wed=2, Thu=3)
-    // We add 3 empty slots for Mon-Wed
-    const emptySlots = Array.from({ length: 3 }, (_, i) => i);
-    const mainDays = Array.from({ length: 31 }, (_, i) => i + 1);
+function MonthView({ monthData, events, selectedDate, onSelectDate, pivotDate }) {
+    const { days, emptySlots, year } = monthData;
+    const currentMonth = pivotDate.getMonth() + 1;
 
     return (
         <View style={styles.monthContainer}>
@@ -214,8 +226,8 @@ function MonthView({ events, selectedDate, onSelectDate }) {
                 {emptySlots.map(i => (
                     <View key={`empty-${i}`} style={styles.monthDayEmpty} />
                 ))}
-                {mainDays.map(d => {
-                    const dateStr = `2026-01-${d.toString().padStart(2, '0')}`;
+                {days.map(d => {
+                    const dateStr = `${year}-${currentMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                     const isSelected = dateStr === selectedDate;
                     const dayEvents = events.filter(e => e.date === dateStr);
 
@@ -245,6 +257,7 @@ function MonthView({ events, selectedDate, onSelectDate }) {
                     );
                 })}
             </View>
+// ...
 
             <View style={styles.legend}>
                 {Object.entries(EVENT_TYPES).map(([key, val]) => (
@@ -274,6 +287,16 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '800',
         color: '#fff',
+    },
+    navControls: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 6,
+    },
+    navBtn: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        padding: 4,
+        borderRadius: 8,
     },
     weekRange: {
         fontSize: 14,
