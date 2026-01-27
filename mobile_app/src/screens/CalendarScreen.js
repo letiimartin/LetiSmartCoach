@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, TextInput, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, TextInput, PanResponder, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Activity, Trophy, Users, HeartPulse, Plus, X } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
@@ -185,52 +185,59 @@ export default function CalendarScreen({ navigation }) {
             </ScrollView>
 
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Nuevo Evento</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <X size={24} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={{ flex: 1 }}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Nuevo Evento</Text>
+                                    <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                        <X size={24} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Título del evento"
-                            placeholderTextColor="#606060"
-                            value={newEvent.title}
-                            onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
-                        />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Título del evento"
+                                    placeholderTextColor="#606060"
+                                    value={newEvent.title}
+                                    onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
+                                />
 
-                        <View style={styles.typeSelector}>
-                            {['race', 'social', 'health', 'personal'].map(type => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={[styles.typeBtn, newEvent.type === type && { backgroundColor: (EVENT_TYPES[type]?.color || '#fff') + '33' }]}
-                                    onPress={() => setNewEvent({ ...newEvent, type })}
-                                >
-                                    <View style={[styles.typeDot, { backgroundColor: EVENT_TYPES[type]?.color || '#fff' }]} />
-                                    <Text style={[styles.typeBtnText, newEvent.type === type && { color: EVENT_TYPES[type]?.color || '#fff' }]}>
-                                        {EVENT_TYPES[type]?.label || type}
-                                    </Text>
+                                <View style={styles.typeSelector}>
+                                    {['race', 'social', 'health', 'personal'].map(type => (
+                                        <TouchableOpacity
+                                            key={type}
+                                            style={[styles.typeBtn, newEvent.type === type && { backgroundColor: (EVENT_TYPES[type]?.color || '#fff') + '33' }]}
+                                            onPress={() => setNewEvent({ ...newEvent, type })}
+                                        >
+                                            <View style={[styles.typeDot, { backgroundColor: EVENT_TYPES[type]?.color || '#fff' }]} />
+                                            <Text style={[styles.typeBtnText, newEvent.type === type && { color: EVENT_TYPES[type]?.color || '#fff' }]}>
+                                                {EVENT_TYPES[type]?.label || type}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <TextInput
+                                    style={[styles.input, { height: 80 }]}
+                                    placeholder="Descripción (opcional)"
+                                    placeholderTextColor="#606060"
+                                    multiline
+                                    value={newEvent.description}
+                                    onChangeText={(t) => setNewEvent({ ...newEvent, description: t })}
+                                />
+
+                                <TouchableOpacity style={styles.saveBtn} onPress={handleAddEvent}>
+                                    <Text style={styles.saveBtnText}>Guardar Evento</Text>
                                 </TouchableOpacity>
-                            ))}
+                            </View>
                         </View>
-
-                        <TextInput
-                            style={[styles.input, { height: 80 }]}
-                            placeholder="Descripción (opcional)"
-                            placeholderTextColor="#606060"
-                            multiline
-                            value={newEvent.description}
-                            onChangeText={(t) => setNewEvent({ ...newEvent, description: t })}
-                        />
-
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleAddEvent}>
-                            <Text style={styles.saveBtnText}>Guardar Evento</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
             </Modal>
         </SafeAreaView>
     );
