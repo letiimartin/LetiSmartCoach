@@ -29,14 +29,37 @@ export default function DashboardScreen({ navigation }) {
     }, []);
 
     const handleWahooConnect = async () => {
-        const url = wahooService.getAuthUrl();
-        await Linking.openURL(url);
-        // In a real app, Deep Linking handles the callback.
-        // For local dev without deep links config, we might need manual refresh or mock.
-        // Mocking connection success after return:
-        setTimeout(() => {
-            wahooService.exchangeCode('mock_code').then(() => setWahooConnected(true));
-        }, 3000);
+        try {
+            // 1. Start listening for the redirect
+            const handleUrl = async ({ url }) => {
+                try {
+                    console.log("Deep link received:", url);
+                    if (url.includes('code=')) {
+                        const code = url.split('code=')[1].split('&')[0]; // Simple parse
+                        console.log("Auth code found:", code);
+
+                        // Exchange code
+                        await wahooService.exchangeCode(code);
+                        setWahooConnected(true);
+                        Alert.alert("Conectado", "Tu cuenta de Wahoo se ha vinculado correctamente.");
+                    }
+                } catch (err) {
+                    console.error("Auth callback error:", err);
+                    Alert.alert("Error", "Fallo al vincular cuenta.");
+                } finally {
+                    Linking.removeEventListener('url', handleUrl);
+                }
+            };
+
+            Linking.addEventListener('url', handleUrl);
+
+            // 2. Open Auth URL
+            const url = wahooService.getAuthUrl();
+            await Linking.openURL(url);
+
+        } catch (err) {
+            console.error("Failed to start auth flow:", err);
+        }
     };
 
     const handleSync = async () => {
