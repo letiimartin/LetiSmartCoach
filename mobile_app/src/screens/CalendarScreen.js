@@ -123,7 +123,13 @@ export default function CalendarScreen({ navigation }) {
                     })}
                 </View>
             ) : (
-                <MonthView events={events} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+                <MonthView
+                    monthData={monthData}
+                    events={events}
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                    pivotDate={pivotDate}
+                />
             )}
 
             <ScrollView contentContainerStyle={styles.eventList}>
@@ -181,12 +187,12 @@ export default function CalendarScreen({ navigation }) {
                             {['race', 'social', 'health', 'personal'].map(type => (
                                 <TouchableOpacity
                                     key={type}
-                                    style={[styles.typeBtn, newEvent.type === type && { backgroundColor: EVENT_TYPES[type].color + '33' }]}
+                                    style={[styles.typeBtn, newEvent.type === type && { backgroundColor: (EVENT_TYPES[type]?.color || '#fff') + '33' }]}
                                     onPress={() => setNewEvent({ ...newEvent, type })}
                                 >
-                                    <View style={[styles.typeDot, { backgroundColor: EVENT_TYPES[type].color }]} />
-                                    <Text style={[styles.typeBtnText, newEvent.type === type && { color: EVENT_TYPES[type].color }]}>
-                                        {EVENT_TYPES[type].label}
+                                    <View style={[styles.typeDot, { backgroundColor: EVENT_TYPES[type]?.color || '#fff' }]} />
+                                    <Text style={[styles.typeBtnText, newEvent.type === type && { color: EVENT_TYPES[type]?.color || '#fff' }]}>
+                                        {EVENT_TYPES[type]?.label || type}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
@@ -257,7 +263,7 @@ function MonthView({ monthData, events, selectedDate, onSelectDate, pivotDate })
                     );
                 })}
             </View>
-// ...
+
 
             <View style={styles.legend}>
                 {Object.entries(EVENT_TYPES).map(([key, val]) => (
