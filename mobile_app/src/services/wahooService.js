@@ -1,9 +1,11 @@
-import { supabase } from '../lib/supabase';
-import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
 const WAHOO_CLIENT_SECRET = '7dYRrjvF6xJDsmHE6BjKK_S-_E8PKzQik95bSKqCM20';
-const REDIRECT_URI = 'letismartcoach://wahoo-callback';
+
+// Auto-generate the correct redirect URI for Expo Go or Production
+const REDIRECT_URI = Linking.createURL('wahoo-callback');
+console.log("► WAHOO REDIRECT URI GENERATED:", REDIRECT_URI);
 
 export const wahooService = {
     /**
