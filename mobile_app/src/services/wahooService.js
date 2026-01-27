@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
 import { Platform } from 'react-native';
 
-const WAHOO_CLIENT_ID = 'YOUR_WAHOO_CLIENT_ID'; // TODO: Move to env
-const WAHOO_CLIENT_SECRET = 'YOUR_WAHOO_CLIENT_SECRET'; // TODO: Move to env
-const REDIRECT_URI = 'letismartcoach://wahoo-callback';
+const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
+const WAHOO_CLIENT_SECRET = '7dYRrjvF6xJDsmHE6BjKK_S-_E8PKzQik95bSKqCM20';
+const REDIRECT_URI = 'https://letismartcoach.onrender.com/auth/wahoo/callback';
 
 export const wahooService = {
     /**
@@ -20,28 +20,42 @@ export const wahooService = {
      */
     async exchangeCode(code) {
         try {
-            // In a real app, this should be done via a backend proxy to keep Client Secret hidden.
-            // For MVP local dev, we do it here or assume a Supabase Edge Function exists.
-            // We'll simulate the token response for now if we can't hit Wahoo directly without credentials.
+            console.log("Exchanging code for tokens:", code);
 
-            // Mock response for development if no real creds
-            const tokens = {
-                access_token: 'mock_access_token_' + Date.now(),
-                refresh_token: 'mock_refresh_token_' + Date.now(),
-                expires_in: 7200,
-                scope: 'user_read workouts_read'
-            };
+            // Real Wahoo Token Exchange
+            const response = await fetch('https://api.wahooligan.com/oauth/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    client_id: WAHOO_CLIENT_ID,
+                    client_secret: WAHOO_CLIENT_SECRET,
+                    code: code,
+                    grant_type: 'authorization_code',
+                    redirect_uri: REDIRECT_URI
+                }).toString()
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Wahoo Token Error: ${response.status} ${errorText}`);
+            }
+
+            const tokens = await response.json();
+            console.log("Tokens received:", tokens);
 
             // Calculate expiry
-            const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+            // Wahoo usually returns expires_in (seconds)
+            const expiresAt = new Date(Date.now() + (tokens.expires_in || 7200) * 1000).toISOString();
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('No user logged in');
 
-            // Save to DB using the existing schema structure (with _enc suffix)
+            // Save to DB
             const { error } = await supabase.from('wahoo_tokens').upsert({
                 user_id: user.id,
-                access_token_enc: tokens.access_token, // Ideally encrypt before sending
+                access_token_enc: tokens.access_token,
                 refresh_token_enc: tokens.refresh_token,
                 expires_at: expiresAt,
                 scope: tokens.scope,
