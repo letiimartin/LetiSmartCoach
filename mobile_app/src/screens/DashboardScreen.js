@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2, Bot, Link as LinkIcon, RefreshCw } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
@@ -40,14 +40,25 @@ export default function DashboardScreen({ navigation }) {
     };
 
     const handleSync = async () => {
+        console.log("Starting sync...");
         setSyncing(true);
         try {
             const count = await wahooService.syncWorkouts();
-            await eventsRefresh(); // Refresh context to see new workouts
-            Alert.alert("Sincronización Completada", `Se han importado ${count || 0} nuevas actividades.`);
+            console.log("Sync finished. Count:", count);
+            await eventsRefresh();
+            console.log("Context refreshed. Showing alert.");
+            if (Platform.OS === 'web') {
+                window.alert(`Sincronización Completada: ${count || 0} actividades.`);
+            } else {
+                Alert.alert("Sincronización Completada", `Se han importado ${count || 0} nuevas actividades.`);
+            }
         } catch (err) {
-            console.error(err);
-            Alert.alert("Error", "No se pudo sincronizar con Wahoo.");
+            console.error("Sync error:", err);
+            if (Platform.OS === 'web') {
+                window.alert("Error: No se pudo sincronizar con Wahoo.");
+            } else {
+                Alert.alert("Error", "No se pudo sincronizar con Wahoo.");
+            }
         } finally {
             setSyncing(false);
         }
