@@ -22,6 +22,9 @@ export default function DashboardScreen({ navigation }) {
             setAthlete(profile);
             setWahooConnected(connected);
             setLoading(false);
+        }).catch(err => {
+            console.error("Error loading dashboard data:", err);
+            setLoading(false); // Ensure loading stops even on error
         });
     }, []);
 
