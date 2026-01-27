@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2, Bot, Link as LinkIcon, RefreshCw } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
@@ -8,7 +8,7 @@ import { wahooService } from '../services/wahooService';
 import ImpactCard from '../components/ImpactCard';
 
 export default function DashboardScreen({ navigation }) {
-    const { events, loading: workoutsLoading, updateWorkoutStatus } = useWorkouts();
+    const { events, loading: workoutsLoading, updateWorkoutStatus, refresh: eventsRefresh } = useWorkouts();
     const [athlete, setAthlete] = useState(null);
     const [loading, setLoading] = useState(true);
     const [wahooConnected, setWahooConnected] = useState(false);
@@ -42,10 +42,12 @@ export default function DashboardScreen({ navigation }) {
     const handleSync = async () => {
         setSyncing(true);
         try {
-            await wahooService.syncWorkouts();
-            // Trigger context refresh if needed (omitted for brevity, assume auto-refresh or add context.refresh())
+            const count = await wahooService.syncWorkouts();
+            await eventsRefresh(); // Refresh context to see new workouts
+            Alert.alert("Sincronización Completada", `Se han importado ${count || 0} nuevas actividades.`);
         } catch (err) {
             console.error(err);
+            Alert.alert("Error", "No se pudo sincronizar con Wahoo.");
         } finally {
             setSyncing(false);
         }
