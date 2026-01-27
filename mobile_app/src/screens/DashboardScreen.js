@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2, Bot } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
 import { profileService } from '../services/profileService';
 import ImpactCard from '../components/ImpactCard';
@@ -42,8 +42,13 @@ export default function DashboardScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.header}>
-                    <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{athlete.name}</Text></Text>
-                    <Text style={styles.subGreeting}>Tu resumen semanal está listo.</Text>
+                    <View>
+                        <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{athlete.full_name || 'Atleta'}</Text></Text>
+                        <Text style={styles.subGreeting}>Tu resumen semanal está listo.</Text>
+                    </View>
+                    <TouchableOpacity style={styles.chatButton} onPress={() => navigation.navigate('CoachChat')}>
+                        <Bot color="#000" size={24} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Sección HOY */}
@@ -173,6 +178,9 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: 24,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     greeting: {
         fontSize: 26,
@@ -186,6 +194,14 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#909090',
         marginTop: 4,
+    },
+    chatButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#00f2ff',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     heroSection: {
         marginBottom: 24,

@@ -23,10 +23,19 @@ export function WorkoutsProvider({ children }) {
         }
     };
 
-    const updateWorkoutStatus = (id, status) => {
+    const updateWorkoutStatus = async (id, status) => {
+        // Optimistic update
         setEvents(prev => prev.map(event =>
             event.id === id ? { ...event, status } : event
         ));
+
+        try {
+            await calendarService.updateStatus(id, status);
+        } catch (error) {
+            console.error("Failed to update status on server:", error);
+            // Revert changes could be added here, but for MVP keep it simple or refresh
+            loadData();
+        }
     };
 
     const addEvent = async (event) => {

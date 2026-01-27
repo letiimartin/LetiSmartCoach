@@ -19,6 +19,7 @@ import { Zap } from 'lucide-react-native';
 export default function AuthScreen({ onLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
     const [message, setMessage] = useState({ type: '', content: '' });
@@ -34,7 +35,12 @@ export default function AuthScreen({ onLogin }) {
 
         try {
             if (isSignUp) {
-                await authService.signUp(email, password);
+                if (!fullName) {
+                    setMessage({ type: 'error', content: 'El nombre completo es obligatorio para el registro.' });
+                    setLoading(false);
+                    return;
+                }
+                await authService.signUp(email, password, fullName);
                 setMessage({ type: 'success', content: '¡Registro casi listo! Revisa tu email para confirmar tu cuenta.' });
             } else {
                 await authService.signIn(email, password);
@@ -70,6 +76,17 @@ export default function AuthScreen({ onLogin }) {
                                     <Text style={styles.messageText}>{message.content}</Text>
                                 </View>
                             ) : null}
+
+                            {isSignUp && (
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Nombre Completo"
+                                    placeholderTextColor="#909090"
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    autoCapitalize="words"
+                                />
+                            )}
 
                             <TextInput
                                 style={styles.input}
