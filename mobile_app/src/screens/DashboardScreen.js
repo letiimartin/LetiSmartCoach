@@ -55,7 +55,19 @@ export default function DashboardScreen({ navigation }) {
             </SafeAreaView>
         );
     }
-    // ... (keep existing render logic until StatsGrid)
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayWorkout = events.find(e => e.date === todayStr && e.type === 'workout');
+
+    // Summary Stats
+    const weeklySummary = {
+        sessions: events.filter(e => e.type === 'workout').length,
+        hours: "8h 30m",
+        tss: 420,
+        restrictions: events.filter(e => e.type === 'health' && e.restriction).length,
+        keyRace: "15 días para: Gran Fondo Pirineos"
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
