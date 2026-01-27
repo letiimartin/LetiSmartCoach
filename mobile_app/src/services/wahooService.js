@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
 const WAHOO_CLIENT_SECRET = '7dYRrjvF6xJDsmHE6BjKK_S-_E8PKzQik95bSKqCM20';
-const REDIRECT_URI = 'https://letismartcoach.onrender.com/auth/wahoo/callback';
+const REDIRECT_URI = 'letismartcoach://wahoo-callback';
 
 export const wahooService = {
     /**
