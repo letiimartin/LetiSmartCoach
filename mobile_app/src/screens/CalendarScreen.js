@@ -13,7 +13,8 @@ const EVENT_TYPES = {
     workout: { label: 'Entreno', color: '#00f2ff', icon: Activity, priority: 1 },
     race: { label: 'Carrera', color: '#ffcc00', icon: Trophy, priority: 2 },
     social: { label: 'Social', color: '#ff4444', icon: Users, priority: 3 },
-    health: { label: 'Salud/Personal', color: '#33ff99', icon: HeartPulse, priority: 4 },
+    health: { label: 'Salud', color: '#33ff99', icon: HeartPulse, priority: 4 },
+    personal: { label: 'Personal', color: '#a855f7', icon: HeartPulse, priority: 5 },
 };
 
 export default function CalendarScreen({ navigation }) {
@@ -221,9 +222,10 @@ function MonthView({ events, selectedDate, onSelectDate }) {
                     const seenTypes = new Set();
                     const markerColors = [];
                     dayEvents.forEach(e => {
-                        if (!seenTypes.has(e.type) && markerColors.length < 4) {
+                        const typeCfg = EVENT_TYPES[e.type];
+                        if (typeCfg && !seenTypes.has(e.type) && markerColors.length < 4) {
                             seenTypes.add(e.type);
-                            markerColors.push(EVENT_TYPES[e.type].color);
+                            markerColors.push(typeCfg.color);
                         }
                     });
 

@@ -33,7 +33,8 @@ export const calendarService = {
                 end_dt: e.end_dt,
                 type: e.type, // 'race', 'social', 'health', 'personal'
                 description: e.details_json?.description || '',
-                priority: e.priority || 'medium'
+                priority: e.priority || 'medium',
+                restriction: e.constraints_json?.is_restriction || false
             }));
 
             // Map planned sessions to 'workout' type for the calendar
