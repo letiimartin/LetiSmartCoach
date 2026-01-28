@@ -1,3 +1,4 @@
+import { supabase } from '../lib/supabase';
 import * as Linking from 'expo-linking';
 
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
