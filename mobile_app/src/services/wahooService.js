@@ -134,17 +134,19 @@ export const wahooService = {
             await supabase.from('workouts').upsert({
                 user_id: user.id,
                 provider: 'wahoo',
-                provider_activity_id: act.id, // Maps to external_id in plan, but existing schema uses this
-                sport: act.type === 'cycling' ? 'ciclismo' : 'running', // Simple map
+                external_id: act.id,
+                sport: act.type === 'cycling' ? 'ciclismo' : 'running',
                 title: act.name,
                 start_dt: act.start_time,
                 duration_s: act.duration,
-                distance_m: act.distance,
-                avg_hr: act.average_heartrate,
-                avg_power: act.average_power,
-                metrics_json: act // Store full raw payload
+                summary_json: {
+                    distance_m: act.distance,
+                    avg_hr: act.average_heartrate,
+                    avg_power: act.average_power,
+                    ...act // Store full raw payload as well if needed
+                }
             }, {
-                onConflict: 'user_id, provider, provider_activity_id'
+                onConflict: 'user_id, provider, external_id'
             });
         }
 
