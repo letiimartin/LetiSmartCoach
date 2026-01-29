@@ -39,11 +39,12 @@ export const wahooService = {
                 throw new Error("No active session");
             }
 
-            // 2. Call Edge Function with explicit Authorization header
+            // 2. Call Edge Function with explicit Authorization header + body fallback
             const { data, error } = await supabase.functions.invoke('wahoo-auth', {
                 body: {
                     code,
-                    redirect_uri: REDIRECT_URI
+                    redirect_uri: REDIRECT_URI,
+                    access_token: token // Fallback if headers are stripped
                 },
                 headers: {
                     Authorization: `Bearer ${token}`
