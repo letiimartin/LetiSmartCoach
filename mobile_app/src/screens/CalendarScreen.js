@@ -1,38 +1,75 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, TextInput, PanResponder, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Activity, Trophy, Users, HeartPulse } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Activity, Trophy, Users, HeartPulse, Plus, X } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
 import WorkoutCard from '../components/WorkoutCard';
 import EventCard from '../components/EventCard';
 import ImpactCard from '../components/ImpactCard';
+import { getWeekDays, getMonthData, formatDate } from '../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 50;
 
 const EVENT_TYPES = {
     workout: { label: 'Entreno', color: '#00f2ff', icon: Activity, priority: 1 },
     race: { label: 'Carrera', color: '#ffcc00', icon: Trophy, priority: 2 },
     social: { label: 'Social', color: '#ff4444', icon: Users, priority: 3 },
-    health: { label: 'Salud/Personal', color: '#33ff99', icon: HeartPulse, priority: 4 },
+    health: { label: 'Salud', color: '#33ff99', icon: HeartPulse, priority: 4 },
+    personal: { label: 'Personal', color: '#a855f7', icon: HeartPulse, priority: 5 },
 };
 
 export default function CalendarScreen({ navigation }) {
-    const { events, updateWorkoutStatus } = useWorkouts();
+    const { events, updateWorkoutStatus, addEvent } = useWorkouts();
     const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
-    const [selectedDate, setSelectedDate] = useState('2026-01-22');
+    const [pivotDate, setPivotDate] = useState(new Date('2026-01-22')); // Pivot for dynamic ranges
+    const [selectedDate, setSelectedDate] = useState(formatDate(new Date('2026-01-22')));
+    const [modalVisible, setModalVisible] = useState(false);
+    const [newEvent, setNewEvent] = useState({ title: '', type: 'social', description: '' });
 
-    // Hardcoded week for Phase 1
-    const weekDays = [
-        { label: 'Lun', date: '2026-01-19', day: 19 },
-        { label: 'Mar', date: '2026-01-20', day: 20 },
-        { label: 'Mié', date: '2026-01-21', day: 21 },
-        { label: 'Jue', date: '2026-01-22', day: 22 },
-        { label: 'Vie', date: '2026-01-23', day: 23 },
-        { label: 'Sáb', date: '2026-01-24', day: 24 },
-        { label: 'Dom', date: '2026-01-25', day: 25 },
-    ];
+    // Dynamic ranges
+    const weekDays = getWeekDays(pivotDate);
+    const monthData = getMonthData(pivotDate);
+
+    const changePivot = (direction) => {
+        const next = new Date(pivotDate);
+        if (viewMode === 'week') {
+            next.setDate(pivotDate.getDate() + (direction * 7));
+        } else {
+            next.setMonth(pivotDate.getMonth() + direction);
+        }
+        setPivotDate(next);
+        // Sync selected date if it's not in the new range (optional, for UX)
+        // For now just change range
+    };
+
+    // PanResponder for Swipe
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                return Math.abs(gestureState.dx) > 10; // Trigger on small movements
+            },
+            onPanResponderRelease: (evt, gestureState) => {
+                if (gestureState.dx > SWIPE_THRESHOLD) {
+                    changePivot(-1); // Swipe Right -> Previous
+                } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+                    changePivot(1); // Swipe Left -> Next
+                }
+            },
+        })
+    ).current;
 
     const dayEvents = events.filter(e => e.date === selectedDate);
+
+    const handleAddEvent = async () => {
+        if (!newEvent.title) return;
+        await addEvent({
+            ...newEvent,
+            start_dt: `${selectedDate}T12:00:00Z`
+        });
+        setModalVisible(false);
+        setNewEvent({ title: '', type: 'social', description: '' });
+    };
 
     // Sort events by priority
     const sortedDayEvents = [...dayEvents].sort((a, b) => {
@@ -53,8 +90,15 @@ export default function CalendarScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.monthTitle}>Enero 2026</Text>
-                    <Text style={styles.weekRange}>Semana 4</Text>
+                    <Text style={styles.monthTitle}>{monthData.monthName} {monthData.year}</Text>
+                    <View style={styles.navControls}>
+                        <TouchableOpacity onPress={() => changePivot(-1)} style={styles.navBtn}>
+                            <ChevronLeft size={20} color="#909090" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => changePivot(1)} style={styles.navBtn}>
+                            <ChevronRight size={20} color="#909090" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <View style={styles.viewSwitcher}>
                     <TouchableOpacity
@@ -72,34 +116,49 @@ export default function CalendarScreen({ navigation }) {
                 </View>
             </View>
 
-            {viewMode === 'week' ? (
-                <View style={styles.weekStrip}>
-                    {weekDays.map((d) => {
-                        const isSelected = d.date === selectedDate;
-                        const hasWorkout = events.some(e => e.date === d.date && e.type === 'workout');
-                        const hasEvent = events.some(e => e.date === d.date && e.type !== 'workout');
+            <View {...panResponder.panHandlers} style={styles.swipeContainer}>
+                {viewMode === 'week' ? (
+                    <View style={styles.weekStrip}>
+                        {weekDays.map((d) => {
+                            const isSelected = d.date === selectedDate;
+                            const hasWorkout = events.some(e => e.date === d.date && e.type === 'workout');
+                            const hasEvent = events.some(e => e.date === d.date && e.type !== 'workout');
 
-                        return (
-                            <TouchableOpacity
-                                key={d.date}
-                                style={[styles.dayCol, isSelected && styles.dayColSelected]}
-                                onPress={() => setSelectedDate(d.date)}
-                            >
-                                <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>{d.label}</Text>
-                                <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{d.day}</Text>
-                                <View style={styles.dotsRow}>
-                                    {hasWorkout && <View style={[styles.dot, { backgroundColor: '#00f2ff' }]} />}
-                                    {hasEvent && <View style={[styles.dot, { backgroundColor: '#ffcc00' }]} />}
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-            ) : (
-                <MonthView events={events} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-            )}
+                            return (
+                                <TouchableOpacity
+                                    key={d.date}
+                                    style={[styles.dayCol, isSelected && styles.dayColSelected]}
+                                    onPress={() => setSelectedDate(d.date)}
+                                >
+                                    <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>{d.label}</Text>
+                                    <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{d.day}</Text>
+                                    <View style={styles.dotsRow}>
+                                        {hasWorkout && <View style={[styles.dot, { backgroundColor: '#00f2ff' }]} />}
+                                        {hasEvent && <View style={[styles.dot, { backgroundColor: '#ffcc00' }]} />}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                ) : (
+                    <MonthView
+                        monthData={monthData}
+                        events={events}
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        pivotDate={pivotDate}
+                    />
+                )}
+            </View>
 
             <ScrollView contentContainerStyle={styles.eventList}>
+                <View style={styles.listHeader}>
+                    <Text style={styles.listTitle}>Eventos del día</Text>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                        <Plus size={20} color="#00f2ff" />
+                    </TouchableOpacity>
+                </View>
+
                 {sortedDayEvents.length > 0 ? (
                     sortedDayEvents.map(event => (
                         event.type === 'workout' ? (
@@ -124,28 +183,93 @@ export default function CalendarScreen({ navigation }) {
                     <ImpactCard summary={weeklySummary} />
                 </View>
             </ScrollView>
+
+            <Modal visible={modalVisible} animationType="slide" transparent={true}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={{ flex: 1 }}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Nuevo Evento</Text>
+                                    <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                        <X size={24} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Título del evento"
+                                    placeholderTextColor="#606060"
+                                    value={newEvent.title}
+                                    onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
+                                />
+
+                                <View style={styles.typeSelector}>
+                                    {['race', 'social', 'health', 'personal'].map(type => (
+                                        <TouchableOpacity
+                                            key={type}
+                                            style={[styles.typeBtn, newEvent.type === type && { backgroundColor: (EVENT_TYPES[type]?.color || '#fff') + '33' }]}
+                                            onPress={() => setNewEvent({ ...newEvent, type })}
+                                        >
+                                            <View style={[styles.typeDot, { backgroundColor: EVENT_TYPES[type]?.color || '#fff' }]} />
+                                            <Text style={[styles.typeBtnText, newEvent.type === type && { color: EVENT_TYPES[type]?.color || '#fff' }]}>
+                                                {EVENT_TYPES[type]?.label || type}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <TextInput
+                                    style={[styles.input, { height: 80 }]}
+                                    placeholder="Descripción (opcional)"
+                                    placeholderTextColor="#606060"
+                                    multiline
+                                    value={newEvent.description}
+                                    onChangeText={(t) => setNewEvent({ ...newEvent, description: t })}
+                                />
+
+                                <TouchableOpacity style={styles.saveBtn} onPress={handleAddEvent}>
+                                    <Text style={styles.saveBtnText}>Guardar Evento</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </Modal>
         </SafeAreaView>
     );
 }
 
-function MonthView({ events, selectedDate, onSelectDate }) {
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+function MonthView({ monthData, events, selectedDate, onSelectDate, pivotDate }) {
+    const { days, emptySlots, year } = monthData;
+    const currentMonth = pivotDate.getMonth() + 1;
 
     return (
         <View style={styles.monthContainer}>
+            <View style={styles.weekdayHeaders}>
+                {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
+                    <Text key={d} style={styles.weekdayHeaderText}>{d}</Text>
+                ))}
+            </View>
             <View style={styles.monthGrid}>
+                {emptySlots.map(i => (
+                    <View key={`empty-${i}`} style={styles.monthDayEmpty} />
+                ))}
                 {days.map(d => {
-                    const dateStr = `2026-01-${d.toString().padStart(2, '0')}`;
+                    const dateStr = `${year}-${currentMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                     const isSelected = dateStr === selectedDate;
                     const dayEvents = events.filter(e => e.date === dateStr);
 
-                    // Priority sorting for dots
                     const seenTypes = new Set();
                     const markerColors = [];
                     dayEvents.forEach(e => {
-                        if (!seenTypes.has(e.type) && markerColors.length < 4) {
+                        const typeCfg = EVENT_TYPES[e.type];
+                        if (typeCfg && !seenTypes.has(e.type) && markerColors.length < 4) {
                             seenTypes.add(e.type);
-                            markerColors.push(EVENT_TYPES[e.type].color);
+                            markerColors.push(typeCfg.color);
                         }
                     });
 
@@ -165,6 +289,7 @@ function MonthView({ events, selectedDate, onSelectDate }) {
                     );
                 })}
             </View>
+
 
             <View style={styles.legend}>
                 {Object.entries(EVENT_TYPES).map(([key, val]) => (
@@ -194,6 +319,19 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '800',
         color: '#fff',
+    },
+    navControls: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 6,
+    },
+    navBtn: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        padding: 4,
+        borderRadius: 8,
+    },
+    swipeContainer: {
+        minHeight: 100, // Ensure it's touchable even on small weeks
     },
     weekRange: {
         fontSize: 14,
@@ -269,6 +407,89 @@ const styles = StyleSheet.create({
     eventList: {
         padding: 20,
     },
+    listHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    listTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    addBtn: {
+        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+        padding: 8,
+        borderRadius: 8,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#1a1a1c',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    input: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 12,
+        padding: 16,
+        color: '#fff',
+        fontSize: 16,
+        marginBottom: 16,
+    },
+    typeSelector: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 20,
+    },
+    typeBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    typeDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    typeBtnText: {
+        fontSize: 13,
+        color: '#909090',
+    },
+    saveBtn: {
+        backgroundColor: '#00f2ff',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    saveBtnText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
     emptyDay: {
         alignItems: 'center',
         paddingVertical: 40,
@@ -296,15 +517,33 @@ const styles = StyleSheet.create({
     },
     monthDay: {
         width: (width - 20) / 7,
-        aspectRatio: 1,
+        height: 64, // Increased height for "expansive" feel
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 0.5,
-        borderColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    monthDayEmpty: {
+        width: (width - 20) / 7,
+        height: 64,
+    },
+    weekdayHeaders: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 0,
+        marginBottom: 8,
+    },
+    weekdayHeaderText: {
+        width: (width - 20) / 7,
+        textAlign: 'center',
+        color: '#606060',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     monthDaySelected: {
-        backgroundColor: 'rgba(0, 242, 255, 0.1)',
-        borderColor: 'rgba(0, 242, 255, 0.3)',
+        backgroundColor: 'rgba(0, 242, 255, 0.15)',
+        borderColor: 'rgba(0, 242, 255, 0.4)',
+        borderRadius: 8,
     },
     monthDayText: {
         color: '#606060',
@@ -316,13 +555,13 @@ const styles = StyleSheet.create({
     },
     monthDots: {
         flexDirection: 'row',
-        gap: 2,
-        marginTop: 4,
+        gap: 3,
+        marginTop: 6,
     },
     miniDot: {
-        width: 3,
-        height: 3,
-        borderRadius: 1.5,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
     },
     legend: {
         flexDirection: 'row',

@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, Activity, Clock, Target, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react-native';
+import { Zap, Activity, Clock, Target, ChevronLeft, CheckCircle2, XCircle, Share } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
 
 export default function WorkoutDetailScreen({ route, navigation }) {
@@ -64,9 +64,77 @@ export default function WorkoutDetailScreen({ route, navigation }) {
                         <XCircle color="#ff453a" size={20} />
                         <Text style={styles.secondaryButtonText}>Saltar sesión</Text>
                     </TouchableOpacity>
+
+                    <WahooExportButton />
                 </View>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+function WahooExportButton() {
+    const [status, setStatus] = useState('idle'); // idle, loading, success, error
+
+    const handleExport = () => {
+        if (status === 'loading' || status === 'success') return;
+        setStatus('loading');
+
+        // Mock API call to Wahoo Service
+        setTimeout(() => {
+            const success = Math.random() > 0.1; // 90% success rate
+            setStatus(success ? 'success' : 'error');
+
+            if (success) {
+                setTimeout(() => setStatus('idle'), 3000); // Reset after 3s
+            }
+        }, 2000);
+    };
+
+    const getButtonContent = () => {
+        switch (status) {
+            case 'loading':
+                return (
+                    <>
+                        <ActivityIndicator color="#000" size="small" />
+                        <Text style={styles.wahooText}>Exportando...</Text>
+                    </>
+                );
+            case 'success':
+                return (
+                    <>
+                        <CheckCircle2 color="#000" size={20} />
+                        <Text style={styles.wahooText}>¡Enviado a Wahoo!</Text>
+                    </>
+                );
+            case 'error':
+                return (
+                    <>
+                        <XCircle color="#fff" size={20} />
+                        <Text style={[styles.wahooText, { color: '#fff' }]}>Error. Reintentar</Text>
+                    </>
+                );
+            default:
+                return (
+                    <>
+                        <Share color="#000" size={20} />
+                        <Text style={styles.wahooText}>Exportar a Wahoo</Text>
+                    </>
+                );
+        }
+    };
+
+    return (
+        <TouchableOpacity
+            style={[
+                styles.wahooButton,
+                status === 'success' && styles.wahooSuccess,
+                status === 'error' && styles.wahooError
+            ]}
+            onPress={handleExport}
+            activeOpacity={0.8}
+        >
+            {getButtonContent()}
+        </TouchableOpacity>
     );
 }
 
@@ -229,5 +297,26 @@ const styles = StyleSheet.create({
         color: '#ff453a',
         fontWeight: '600',
         fontSize: 15,
+    },
+    wahooButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: '#fff',
+        marginTop: 8,
+    },
+    wahooSuccess: {
+        backgroundColor: '#30d158',
+    },
+    wahooError: {
+        backgroundColor: '#ff453a',
+    },
+    wahooText: {
+        color: '#000',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

@@ -17,6 +17,7 @@ import WorkoutsScreen from './src/screens/WorkoutsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import WorkoutDetailScreen from './src/screens/WorkoutDetailScreen';
+import CoachChatScreen from './src/screens/CoachChatScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -97,6 +98,7 @@ export default function App() {
                 {(props) => <TabNavigator {...props} onLogout={() => supabase.auth.signOut()} />}
               </Stack.Screen>
               <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
+              <Stack.Screen name="CoachChat" component={CoachChatScreen} />
             </Stack.Navigator>
           ) : (
             <AuthScreen onLogin={() => { }} />

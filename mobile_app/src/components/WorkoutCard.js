@@ -9,14 +9,21 @@ const SPORT_ICONS = {
 };
 
 const STATUS_CONFIG = {
+    // Execution statuses
     hecho: { icon: CheckCircle2, color: '#30d158', label: 'Hecho' },
     saltado: { icon: XCircle, color: '#ff453a', label: 'Saltado' },
     planificado: { icon: Circle, color: '#909090', label: 'Planificado' },
+    // Export statuses (Wahoo)
+    pending: { icon: Circle, color: '#909090', label: 'Pendiente' },
+    exporting: { icon: Activity, color: '#00f2ff', label: 'Enviando...' },
+    exported: { icon: CheckCircle2, color: '#00f2ff', label: 'Wahoo' },
+    failed: { icon: XCircle, color: '#ff453a', label: 'Error Wahoo' },
 };
 
 export default function WorkoutCard({ workout, onPress, onToggleStatus }) {
     const Icon = SPORT_ICONS[workout.sport] || Activity;
-    const { icon: StatusIcon, color: statusColor } = STATUS_CONFIG[workout.status];
+    const statusCfg = STATUS_CONFIG[workout.status] || STATUS_CONFIG.planificado;
+    const { icon: StatusIcon, color: statusColor } = statusCfg;
     const isDone = workout.status === 'hecho';
     const isSkipped = workout.status === 'saltado';
 

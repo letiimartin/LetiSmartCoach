@@ -1,22 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import { Zap, Activity, Clock, Trophy, ChevronRight, CheckCircle2, Bot, Link as LinkIcon, RefreshCw } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
 import { profileService } from '../services/profileService';
+import { wahooService } from '../services/wahooService';
 import ImpactCard from '../components/ImpactCard';
 
 export default function DashboardScreen({ navigation }) {
-    const { events, loading: workoutsLoading, updateWorkoutStatus } = useWorkouts();
+    const { events, loading: workoutsLoading, updateWorkoutStatus, refresh: eventsRefresh } = useWorkouts();
     const [athlete, setAthlete] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [wahooConnected, setWahooConnected] = useState(false);
+    const [syncing, setSyncing] = useState(false);
 
     useEffect(() => {
-        profileService.getProfile().then(data => {
-            setAthlete(data);
+        Promise.all([
+            profileService.getProfile(),
+            wahooService.isConnected()
+        ]).then(([profile, connected]) => {
+            setAthlete(profile);
+            setWahooConnected(connected);
             setLoading(false);
+        }).catch(err => {
+            console.error("Error loading dashboard data:", err);
+            setLoading(false); // Ensure loading stops even on error
         });
     }, []);
+
+    const handleWahooConnect = async () => {
+        try {
+            // 1. Start listening for the redirect
+            const handleUrl = async ({ url }) => {
+                try {
+                    console.log("Deep link received:", url);
+                    if (url.includes('code=')) {
+                        const code = url.split('code=')[1].split('&')[0]; // Simple parse
+                        console.log("Auth code found:", code);
+
+                        // Exchange code
+                        await wahooService.exchangeCode(code);
+                        setWahooConnected(true);
+                        Alert.alert("Conectado", "Tu cuenta de Wahoo se ha vinculado correctamente.");
+                    }
+                } catch (err) {
+                    console.error("Auth callback error:", err);
+                    Alert.alert("Error", "Fallo al vincular cuenta.");
+                } finally {
+                    Linking.removeEventListener('url', handleUrl);
+                }
+            };
+
+            Linking.addEventListener('url', handleUrl);
+
+            // 2. Open Auth URL
+            const url = wahooService.getAuthUrl();
+            await Linking.openURL(url);
+
+        } catch (err) {
+            console.error("Failed to start auth flow:", err);
+        }
+    };
+
+    const handleSync = async () => {
+        console.log("Starting sync...");
+        setSyncing(true);
+        try {
+            const count = await wahooService.syncWorkouts();
+            console.log("Sync finished. Count:", count);
+            await eventsRefresh();
+            console.log("Context refreshed. Showing alert.");
+            if (Platform.OS === 'web') {
+                window.alert(`Sincronización Completada: ${count || 0} actividades.`);
+            } else {
+                Alert.alert("Sincronización Completada", `Se han importado ${count || 0} nuevas actividades.`);
+            }
+        } catch (err) {
+            console.error("Sync error:", err);
+            if (Platform.OS === 'web') {
+                window.alert("Error: No se pudo sincronizar con Wahoo.");
+            } else {
+                Alert.alert("Error", "No se pudo sincronizar con Wahoo.");
+            }
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     if (loading || workoutsLoading) {
         return (
@@ -27,7 +96,7 @@ export default function DashboardScreen({ navigation }) {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayWorkout = events.find(e => e.date === '2026-01-22' && e.type === 'workout'); // Hardcoded today for mock
+    const todayWorkout = events.find(e => e.date === todayStr && e.type === 'workout');
 
     // Summary Stats
     const weeklySummary = {
@@ -42,9 +111,28 @@ export default function DashboardScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.header}>
-                    <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{athlete.name}</Text></Text>
-                    <Text style={styles.subGreeting}>Tu resumen semanal está listo.</Text>
+                    <View>
+                        <Text style={styles.greeting}>Hola, <Text style={styles.primaryText}>{athlete?.full_name || 'Atleta'}</Text></Text>
+                        <Text style={styles.subGreeting}>Tu resumen semanal está listo.</Text>
+                    </View>
+                    <View style={styles.headerActions}>
+                        {!wahooConnected ? (
+                            <TouchableOpacity style={styles.connectBtn} onPress={handleWahooConnect}>
+                                <LinkIcon color="#000" size={18} />
+                                <Text style={styles.connectBtnText}>Wahoo</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={styles.syncBtn} onPress={handleSync} disabled={syncing}>
+                                <RefreshCw color="#00f2ff" size={20} className={syncing ? 'animate-spin' : ''} />
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity style={styles.chatButton} onPress={() => navigation.navigate('CoachChat')}>
+                            <Bot color="#000" size={24} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
+
+                {/* Sección HOY, etc - keep as is */}
 
                 {/* Sección HOY */}
                 <View style={styles.heroSection}>
@@ -173,6 +261,9 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: 24,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     greeting: {
         fontSize: 26,
@@ -186,6 +277,41 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#909090',
         marginTop: 4,
+    },
+    chatButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#00f2ff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    connectBtn: {
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    connectBtnText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    syncBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     heroSection: {
         marginBottom: 24,
