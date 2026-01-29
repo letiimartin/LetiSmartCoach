@@ -58,8 +58,10 @@ export default function AuthScreen({ onLogin }) {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
+                enabled={Platform.OS !== 'web'}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={{ flex: 1 }}>
+
                     <ScrollView
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled"
@@ -130,7 +132,8 @@ export default function AuthScreen({ onLogin }) {
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </TouchableWithoutFeedback>
+                </View>
+
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

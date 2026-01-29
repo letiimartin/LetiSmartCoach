@@ -328,10 +328,20 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
-        shadowColor: '#00f2ff',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#00f2ff',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 4,
+            },
+            web: {
+                boxShadow: '0px 4px 10px rgba(0, 242, 255, 0.1)',
+            }
+        })
     },
     todayCardDone: {
         borderColor: 'rgba(48, 209, 88, 0.3)',
