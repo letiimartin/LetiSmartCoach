@@ -7,10 +7,10 @@ export const calendarService = {
     async getEvents() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("No hay sesión activa");
+            if (!user) return [];
 
-            // Fetch generic events and planned sessions in parallel
-            const [eventsRes, sessionsRes] = await Promise.all([
+            // Fetch generic events, planned sessions, and executed workouts in parallel
+            const [eventsRes, sessionsRes, workoutsRes] = await Promise.all([
                 supabase
                     .from('calendar_events')
                     .select('*')
@@ -18,11 +18,16 @@ export const calendarService = {
                 supabase
                     .from('planned_sessions')
                     .select('*')
+                    .eq('user_id', user.id),
+                supabase
+                    .from('workouts')
+                    .select('*')
                     .eq('user_id', user.id)
             ]);
 
             if (eventsRes.error) throw eventsRes.error;
             if (sessionsRes.error) throw sessionsRes.error;
+            if (workoutsRes.error) throw workoutsRes.error;
 
             // Map generic events
             const mappedEvents = eventsRes.data.map(e => ({
@@ -37,19 +42,34 @@ export const calendarService = {
                 restriction: e.constraints_json?.is_restriction || false
             }));
 
-            // Map planned sessions to 'workout' type for the calendar
-            const mappedWorkouts = sessionsRes.data.map(s => ({
+            // Map planned sessions
+            const mappedPlanned = sessionsRes.data.map(s => ({
                 id: s.id,
-                title: `${s.sport.toUpperCase()}: ${s.targets_json?.main_goal || 'Sesión'}`,
+                title: `${s.sport.toUpperCase()}: ${s.targets_json?.main_goal || 'Planificado'}`,
                 date: s.date,
                 type: 'workout',
                 sport: s.sport,
                 duration: s.duration_s ? `${Math.round(s.duration_s / 60)} min` : '--',
                 description: s.structure_json?.notes || '',
-                status: s.export_status // pending, exporting, exported, failed
+                status: 'planificado', // Explicitly plan
+                export_status: s.export_status
             }));
 
-            return [...mappedEvents, ...mappedWorkouts];
+            // Map executed workouts (Real)
+            const mappedExecuted = workoutsRes.data.map(w => ({
+                id: w.id,
+                title: w.title || 'Entreno Realizado',
+                date: w.start_dt.split('T')[0],
+                type: 'workout',
+                sport: w.sport,
+                duration: w.duration_s ? `${Math.round(w.duration_s / 60)} min` : '--',
+                description: w.notes || '',
+                status: 'hecho' // Explicitly done
+            }));
+
+            return [...mappedEvents, ...mappedPlanned, ...mappedExecuted];
+
+            return [...mappedEvents, ...mappedPlanned, ...mappedExecuted];
         } catch (error) {
             console.error("Error fetching calendar:", error);
             throw error;
