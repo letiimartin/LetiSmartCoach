@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import * as Linking from 'expo-linking';
 
+import { Platform } from 'react-native';
+
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
 // Client Secret moved to Supabase Edge Functions for security
 
@@ -13,10 +15,8 @@ export const wahooService = {
      * Get the OAuth URL to start the connection flow.
      */
     getAuthUrl() {
-        // Determine if we are in web or mobile
-        // In Expo, we can check Platform.OS or just check if it's the ngrok URL
-        const isWeb = REDIRECT_URI.includes('ngrok-free.app');
-        const state = isWeb ? 'web' : 'mobile';
+        // Explicitly set state based on platform
+        const state = Platform.OS === 'web' ? 'web' : 'mobile';
 
         // Wahoo standard OAuth URL
         const scope = 'user_read workouts_read workouts_write';
