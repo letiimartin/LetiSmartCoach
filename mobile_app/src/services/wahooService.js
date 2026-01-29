@@ -35,7 +35,8 @@ export const wahooService = {
             const token = sessionData?.session?.access_token;
 
             if (!token) {
-                throw new Error("No active Supabase session (missing access_token)");
+                console.error("No session found in exchangeCode");
+                throw new Error("No active session");
             }
 
             // 2. Call Edge Function with explicit Authorization header
@@ -46,7 +47,7 @@ export const wahooService = {
                 },
                 headers: {
                     Authorization: `Bearer ${token}`
-                }
+                },
             });
 
             if (error) {
