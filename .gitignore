@@ -1,6 +1,13 @@
+
+# Generated files
 .env
 tokens.json
 __pycache__/
-LetiSmartCoach_SRS_v1.0.docx
-LetiSmartCoach_SRS_v1.0.docx.md
+
+# Specific docs to ignore
 Prompt_Antigravity_LetiSmartCoach_Fase1.docx
+LetiSmartCoach_SRS_v1.0.docx
+# Ignore all MD files by default
+*.md
+# But keep README.md
+!README.md
