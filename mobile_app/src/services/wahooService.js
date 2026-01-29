@@ -30,11 +30,22 @@ export const wahooService = {
         try {
             console.log("Exchanging code for tokens via Edge Function:", code);
 
-            // Call Edge Function
+            // 1. Get current session token
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData?.session?.access_token;
+
+            if (!token) {
+                throw new Error("No active Supabase session (missing access_token)");
+            }
+
+            // 2. Call Edge Function with explicit Authorization header
             const { data, error } = await supabase.functions.invoke('wahoo-auth', {
                 body: {
                     code,
                     redirect_uri: REDIRECT_URI
+                },
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
             });
 
