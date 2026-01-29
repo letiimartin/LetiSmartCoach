@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import * as Linking from 'expo-linking';
 
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
-const WAHOO_CLIENT_SECRET = '7dYRrjvF6xJDsmHE6BjKK_S-_E8PKzQik95bSKqCM20';
+// Client Secret moved to Supabase Edge Functions for security
 
 // Auto-generate the correct redirect URI for Expo Go or Production
 const REDIRECT_URI = Linking.createURL('wahoo-callback');
@@ -23,49 +23,22 @@ export const wahooService = {
      */
     async exchangeCode(code) {
         try {
-            console.log("Exchanging code for tokens:", code);
+            console.log("Exchanging code for tokens via Edge Function:", code);
 
-            // Real Wahoo Token Exchange
-            const response = await fetch('https://api.wahooligan.com/oauth/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    client_id: WAHOO_CLIENT_ID,
-                    client_secret: WAHOO_CLIENT_SECRET,
-                    code: code,
-                    grant_type: 'authorization_code',
+            // Call Edge Function
+            const { data, error } = await supabase.functions.invoke('wahoo-auth', {
+                body: {
+                    code,
                     redirect_uri: REDIRECT_URI
-                }).toString()
+                }
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Wahoo Token Error: ${response.status} ${errorText}`);
+            if (error) {
+                console.error("Edge Function Error:", error);
+                throw error;
             }
 
-            const tokens = await response.json();
-            console.log("Tokens received:", tokens);
-
-            // Calculate expiry
-            // Wahoo usually returns expires_in (seconds)
-            const expiresAt = new Date(Date.now() + (tokens.expires_in || 7200) * 1000).toISOString();
-
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('No user logged in');
-
-            // Save to DB
-            const { error } = await supabase.from('wahoo_tokens').upsert({
-                user_id: user.id,
-                access_token_enc: tokens.access_token,
-                refresh_token_enc: tokens.refresh_token,
-                expires_at: expiresAt,
-                scope: tokens.scope,
-                updated_at: new Date().toISOString()
-            });
-
-            if (error) throw error;
+            console.log("Tokens exchange success via Edge Function");
             return true;
         } catch (error) {
             console.error('Wahoo Auth Error:', error);
@@ -131,10 +104,10 @@ export const wahooService = {
 
         // 3. Upsert to `workouts` table with deduplication
         for (const act of mockActivities) {
-            await supabase.from('workouts').upsert({
+            const { error: upsertError } = await supabase.from('workouts').upsert({
                 user_id: user.id,
                 provider: 'wahoo',
-                external_id: act.id,
+                provider_activity_id: act.id, // Fixed: match DB column
                 sport: act.type === 'cycling' ? 'ciclismo' : 'running',
                 title: act.name,
                 start_dt: act.start_time,
@@ -146,8 +119,13 @@ export const wahooService = {
                     ...act // Store full raw payload as well if needed
                 }
             }, {
-                onConflict: 'user_id, provider, external_id'
+                onConflict: 'user_id,provider,provider_activity_id' // Fixed: match DB constraint
             });
+
+            if (upsertError) {
+                console.error("Supabase Upsert Error:", upsertError);
+                throw upsertError; // Re-throw to be caught by handleSync
+            }
         }
 
         return mockActivities.length;
