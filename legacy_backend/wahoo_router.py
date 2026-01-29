@@ -14,32 +14,23 @@ TOKEN_URL = "https://api.wahooligan.com/oauth/token"
 
 @router.get("/callback")
 async def wahoo_callback(request: Request, state: str = None):
-    # state should contain the user_id (sent during the authorize redirect)
-    user_id = state 
-    if not user_id:
-        return JSONResponse(status_code=400, content={"error": "Missing user state (user_id)"})
-
+    # state indicates the platform: 'web' or 'mobile'
     code = request.query_params.get("code")
     if not code:
         return JSONResponse(status_code=400, content={"error": "Missing authorization code"})
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(TOKEN_URL, data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI
-        })
-
-    if response.status_code == 200:
-        token_data = response.json()
-        await save_user_tokens(user_id, token_data)
-        # Automatically sync initial workouts
-        await sync_workouts_to_db(user_id)
-        return {"message": "Wahoo connection successful and initial sync completed"}
+    # Determine base redirect URL based on state
+    if state == "web":
+        # In web (ngrok), we redirect to the app's callback route
+        # Using the base ngrok URL provided in the request
+        base_url = "https://187525c767f3.ngrok-free.app"
+        redirect_to = f"{base_url}/wahoo-callback?code={code}"
     else:
-        return JSONResponse(status_code=500, content={"error": "Error obtaining Wahoo token", "details": response.text})
+        # In mobile, we use the custom scheme
+        redirect_to = f"letismartcoach://wahoo-callback?code={code}"
+
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=redirect_to)
 
 @router.get("/sync")
 async def sync_workouts(user_id: str):

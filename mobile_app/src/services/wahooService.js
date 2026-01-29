@@ -5,7 +5,7 @@ const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
 // Client Secret moved to Supabase Edge Functions for security
 
 // Auto-generate the correct redirect URI for Expo Go or Production
-const REDIRECT_URI = Linking.createURL('wahoo-callback');
+const REDIRECT_URI = process.env.EXPO_PUBLIC_WAHOO_REDIRECT_URI || Linking.createURL('wahoo-callback');
 console.log("► WAHOO REDIRECT URI GENERATED:", REDIRECT_URI);
 
 export const wahooService = {
@@ -13,9 +13,14 @@ export const wahooService = {
      * Get the OAuth URL to start the connection flow.
      */
     getAuthUrl() {
+        // Determine if we are in web or mobile
+        // In Expo, we can check Platform.OS or just check if it's the ngrok URL
+        const isWeb = REDIRECT_URI.includes('ngrok-free.app');
+        const state = isWeb ? 'web' : 'mobile';
+
         // Wahoo standard OAuth URL
         const scope = 'user_read workouts_read workouts_write';
-        return `https://api.wahooligan.com/oauth/authorize?client_id=${WAHOO_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+        return `https://api.wahooligan.com/oauth/authorize?client_id=${WAHOO_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
     },
 
     /**

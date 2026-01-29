@@ -18,9 +18,29 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import WorkoutDetailScreen from './src/screens/WorkoutDetailScreen';
 import CoachChatScreen from './src/screens/CoachChatScreen';
+import WahooCallbackScreen from './src/screens/WahooCallbackScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+const linking = {
+  prefixes: ['letismartcoach://', 'https://187525c767f3.ngrok-free.app'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'home',
+          Entrenos: 'workouts',
+          Calendario: 'calendar',
+          Perfil: 'profile',
+        },
+      },
+      WorkoutDetail: 'workout/:id',
+      CoachChat: 'chat',
+      WahooCallback: 'wahoo-callback',
+    },
+  },
+};
 
 function TabNavigator({ onLogout }) {
   return (
@@ -81,17 +101,20 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <WorkoutsProvider>
-        <NavigationContainer theme={{
-          ...DarkTheme,
-          colors: {
-            ...DarkTheme.colors,
-            background: '#0a0a0c',
-            primary: '#00f2ff',
-            card: '#0a0a0c',
-            border: 'rgba(255,255,255,0.1)',
-            text: '#e0e0e0',
-          }
-        }}>
+        <NavigationContainer
+          theme={{
+            ...DarkTheme,
+            colors: {
+              ...DarkTheme.colors,
+              background: '#0a0a0c',
+              primary: '#00f2ff',
+              card: '#0a0a0c',
+              border: 'rgba(255,255,255,0.1)',
+              text: '#e0e0e0',
+            }
+          }}
+          linking={linking}
+        >
           {session ? (
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen name="MainTabs">
@@ -99,6 +122,7 @@ export default function App() {
               </Stack.Screen>
               <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
               <Stack.Screen name="CoachChat" component={CoachChatScreen} />
+              <Stack.Screen name="WahooCallback" component={WahooCallbackScreen} />
             </Stack.Navigator>
           ) : (
             <AuthScreen onLogin={() => { }} />
