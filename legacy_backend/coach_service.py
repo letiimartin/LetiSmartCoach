@@ -7,14 +7,28 @@ import json
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com" # DeepSeek API base URL
-)
+_openai_client = None
+
+def get_openai_client():
+    global _openai_client
+    if _openai_client is None:
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            print("⚠️ WARNING: DEEPSEEK_API_KEY missing. AI features will not work.")
+            return None
+        
+        _openai_client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.deepseek.com"
+        )
+    return _openai_client
 
 supabase = get_supabase_client()
 
 async def get_athlete_context(user_id: str):
+    if not supabase:
+        raise ValueError("Supabase client not initialized. Check your environment variables.")
+        
     # Fetch profile, recent workouts, and calendar events
     profile = supabase.table("athlete_profile").select("*").eq("user_id", user_id).execute().data
     workouts = supabase.table("workouts").select("*").eq("user_id", user_id).order("start_dt", desc=True).limit(10).execute().data
@@ -27,6 +41,10 @@ async def get_athlete_context(user_id: str):
     }
 
 async def generate_weekly_plan(user_id: str):
+    client = get_openai_client()
+    if not client:
+        raise ValueError("AI Client not initialized. Check your environment variables.")
+        
     context = await get_athlete_context(user_id)
     
     prompt = f"""
@@ -55,11 +73,13 @@ async def generate_weekly_plan(user_id: str):
     )
     
     plan_data = json.loads(response.choices[0].message.content)
-    # Save the plan to DB
-    # ... logic to save to training_plans and planned_sessions ...
     return plan_data
 
 async def chat_with_coach(user_id: str, message: str, history: List[Dict]):
+    client = get_openai_client()
+    if not client:
+        raise ValueError("AI Client not initialized. Check your environment variables.")
+        
     context = await get_athlete_context(user_id)
     
     messages = [
