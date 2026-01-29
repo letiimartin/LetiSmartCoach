@@ -74,7 +74,7 @@ export const wahooService = {
             .from('wahoo_tokens')
             .select('expires_at')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (error || !data) return false;
 
@@ -94,7 +94,7 @@ export const wahooService = {
             .from('wahoo_tokens')
             .select('access_token_enc')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!tokenData) throw new Error('Not connected to Wahoo');
 
