@@ -4,3 +4,7 @@ __pycache__/
 LetiSmartCoach_SRS_v1.0.docx
 LetiSmartCoach_SRS_v1.0.docx.md
 Prompt_Antigravity_LetiSmartCoach_Fase1.docx.agent/
+.agent/
+*.md
+supabase/.temp/
+Prompt_Antigravity_LetiSmartCoach_Fase1.docx
