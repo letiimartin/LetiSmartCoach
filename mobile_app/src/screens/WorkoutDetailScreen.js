@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, Activity, Clock, Target, ChevronLeft, CheckCircle2, XCircle, Share } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
+import { wahooService } from '../services/wahooService';
+import * as Linking from 'expo-linking';
+import { Alert } from 'react-native';
 
 export default function WorkoutDetailScreen({ route, navigation }) {
     const { workout } = route.params;
@@ -65,29 +68,44 @@ export default function WorkoutDetailScreen({ route, navigation }) {
                         <Text style={styles.secondaryButtonText}>Saltar sesión</Text>
                     </TouchableOpacity>
 
-                    <WahooExportButton />
+                    <WahooExportButton workout={workout} />
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-function WahooExportButton() {
-    const [status, setStatus] = useState('idle'); // idle, loading, success, error
+function WahooExportButton({ workout }) {
+    const [status, setStatus] = useState('idle'); // idle, loading, success, error, missing_scope
+    const [errorMessage, setErrorMessage] = useState('');
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (status === 'loading' || status === 'success') return;
+
         setStatus('loading');
+        setErrorMessage('');
 
-        // Mock API call to Wahoo Service
-        setTimeout(() => {
-            const success = Math.random() > 0.1; // 90% success rate
-            setStatus(success ? 'success' : 'error');
+        try {
+            await wahooService.exportPlannedSession(workout.id);
+            setStatus('success');
+            setTimeout(() => setStatus('idle'), 5000);
+        } catch (error) {
+            console.error("[WahooExportButton] Export failed:", error);
 
-            if (success) {
-                setTimeout(() => setStatus('idle'), 3000); // Reset after 3s
+            if (error.code === 'MISSING_SCOPE' || error.message?.includes('plans_write')) {
+                setStatus('missing_scope');
+                setErrorMessage('Falta permiso plans_write.');
+            } else {
+                setStatus('error');
+                setErrorMessage(error.message || 'Error desconocido');
             }
-        }, 2000);
+        }
+    };
+
+    const handleReconnect = () => {
+        const url = wahooService.getAuthUrl();
+        Linking.openURL(url);
+        setStatus('idle');
     };
 
     const getButtonContent = () => {
@@ -104,6 +122,13 @@ function WahooExportButton() {
                     <>
                         <CheckCircle2 color="#000" size={20} />
                         <Text style={styles.wahooText}>¡Enviado a Wahoo!</Text>
+                    </>
+                );
+            case 'missing_scope':
+                return (
+                    <>
+                        <XCircle color="#fff" size={20} />
+                        <Text style={[styles.wahooText, { color: '#fff' }]}>Reconectar Wahoo</Text>
                     </>
                 );
             case 'error':
@@ -124,17 +149,24 @@ function WahooExportButton() {
     };
 
     return (
-        <TouchableOpacity
-            style={[
-                styles.wahooButton,
-                status === 'success' && styles.wahooSuccess,
-                status === 'error' && styles.wahooError
-            ]}
-            onPress={handleExport}
-            activeOpacity={0.8}
-        >
-            {getButtonContent()}
-        </TouchableOpacity>
+        <View style={{ gap: 8 }}>
+            <TouchableOpacity
+                style={[
+                    styles.wahooButton,
+                    status === 'success' && styles.wahooSuccess,
+                    (status === 'error' || status === 'missing_scope') && styles.wahooError
+                ]}
+                onPress={status === 'missing_scope' ? handleReconnect : handleExport}
+                activeOpacity={0.8}
+            >
+                {getButtonContent()}
+            </TouchableOpacity>
+            {errorMessage ? (
+                <Text style={{ color: '#ff453a', fontSize: 12, textAlign: 'center' }}>
+                    {errorMessage}
+                </Text>
+            ) : null}
+        </View>
     );
 }
 

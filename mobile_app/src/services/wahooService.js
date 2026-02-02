@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import * as Linking from 'expo-linking';
+import { wahooExportService } from './wahooExportService';
 
 const WAHOO_CLIENT_ID = 'NNWFuabam7XbgUg4nAvQ1KQFXVaF4K1b2Zu_Yohbu2s';
 // Client Secret moved to Supabase Edge Functions for security
@@ -134,5 +135,12 @@ export const wahooService = {
         }
 
         return syncedCount;
+    },
+
+    /**
+     * Export a planned session.
+     */
+    async exportPlannedSession(plannedSessionId) {
+        return wahooExportService.exportPlannedSession(plannedSessionId);
     }
 };
