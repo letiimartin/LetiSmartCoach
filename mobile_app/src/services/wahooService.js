@@ -91,7 +91,7 @@ export const wahooService = {
         const response = await fetch('https://api.wahooligan.com/v1/workouts', {
             method: 'GET',
             headers: {
-                'Authorization': f`Bearer ${accessToken}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             }
         });
