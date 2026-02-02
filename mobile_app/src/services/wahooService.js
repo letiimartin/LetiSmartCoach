@@ -14,7 +14,7 @@ export const wahooService = {
      */
     getAuthUrl() {
         // Wahoo standard OAuth URL
-        const scope = 'user_read workouts_read workouts_write';
+        const scope = 'user_read workouts_read workouts_write plans_read plans_write';
         return `https://api.wahooligan.com/oauth/authorize?client_id=${WAHOO_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scope)}`;
     },
 
@@ -70,64 +70,69 @@ export const wahooService = {
      */
     async syncWorkouts() {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) throw new Error('Usuario no autenticado');
 
         // 1. Get token
-        const { data: tokenData } = await supabase
+        const { data: tokenData, error: tokenError } = await supabase
             .from('wahoo_tokens')
             .select('access_token_enc')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
-        if (!tokenData) throw new Error('Not connected to Wahoo');
+        if (tokenError || !tokenData) throw new Error('No estás conectado a Wahoo o el token expiró');
 
-        // 2. Fetch from Wahoo API (Mocked for MVP until real creds)
-        // Simulate fetching last 7 days of history
-        const mockActivities = [];
-        const today = new Date();
+        const accessToken = tokenData.access_token_enc;
 
-        for (let i = 0; i < 5; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - i - 1); // Days in the past
+        // 2. Fetch from Wahoo API
+        console.log("► Fetching real workouts from Wahoo...");
+        const response = await fetch('https://api.wahooligan.com/v1/workouts', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-            mockActivities.push({
-                id: `wahoo_hist_${i}_` + date.getTime(),
-                name: i % 2 === 0 ? 'Entreno Aeróbico' : 'Salida en Bici',
-                type: i % 2 === 0 ? 'running' : 'cycling',
-                start_time: date.toISOString(),
-                duration: 3600 + (i * 300), // Variable duration
-                distance: 10000 + (i * 2000),
-                average_heartrate: 135 + i,
-                average_power: 150 + (i * 10)
-            });
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Error de autorización con Wahoo. Por favor, vuelve a conectar tu cuenta.');
+            }
+            throw new Error(`Error de Wahoo API: ${response.status}`);
         }
 
+        const data = await response.json();
+        const workouts = data.workouts || []; // Response has a 'workouts' array
+        console.log(`► Found ${workouts.length} workouts in Wahoo`);
+
         // 3. Upsert to `workouts` table with deduplication
-        for (const act of mockActivities) {
+        let syncedCount = 0;
+        for (const workout of workouts) {
+            // Mapping details as requested:
+            // - provider_activity_id: String(workout.id)
+            // - sport: ciclismo for biking (usually type 1), else other
+            // - duration_s: minutes * 60
             const { error: upsertError } = await supabase.from('workouts').upsert({
                 user_id: user.id,
                 provider: 'wahoo',
-                provider_activity_id: act.id, // Fixed: match DB column
-                sport: act.type === 'cycling' ? 'ciclismo' : 'running',
-                title: act.name,
-                start_dt: act.start_time,
-                duration_s: act.duration,
+                provider_activity_id: String(workout.id),
+                sport: workout.workout_type_id === 1 ? 'ciclismo' : 'other',
+                title: workout.name || 'Entreno de Wahoo',
+                start_dt: workout.starts,
+                duration_s: (workout.minutes || 0) * 60,
                 summary_json: {
-                    distance_m: act.distance,
-                    avg_hr: act.average_heartrate,
-                    avg_power: act.average_power,
-                    ...act // Store full raw payload as well if needed
+                    ...workout // Store full raw payload
                 }
             }, {
-                onConflict: 'user_id,provider,provider_activity_id' // Fixed: match DB constraint
+                onConflict: 'user_id,provider,provider_activity_id'
             });
 
             if (upsertError) {
-                console.error("Supabase Upsert Error:", upsertError);
-                throw upsertError; // Re-throw to be caught by handleSync
+                console.error(`❌ Error upserting workout ${workout.id}:`, upsertError);
+            } else {
+                syncedCount++;
             }
         }
 
-        return mockActivities.length;
+        return syncedCount;
     }
 };
