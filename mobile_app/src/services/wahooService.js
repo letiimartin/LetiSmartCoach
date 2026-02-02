@@ -80,7 +80,9 @@ export const wahooService = {
             .eq('user_id', user.id)
             .maybeSingle();
 
-        if (tokenError || !tokenData) throw new Error('No estás conectado a Wahoo o el token expiró');
+        if (tokenError || !tokenData || !tokenData.access_token_enc) {
+            throw new Error('No estás conectado a Wahoo o el token es inválido. Por favor, vuelve a conectar tu cuenta.');
+        }
 
         const accessToken = tokenData.access_token_enc;
 
@@ -89,7 +91,7 @@ export const wahooService = {
         const response = await fetch('https://api.wahooligan.com/v1/workouts', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': f`Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -100,23 +102,29 @@ export const wahooService = {
             }
             throw new Error(`Error de Wahoo API: ${response.status}`);
         }
-
         const data = await response.json();
         const workouts = data.workouts || []; // Response has a 'workouts' array
         console.log(`► Found ${workouts.length} workouts in Wahoo`);
 
         // 3. Upsert to `workouts` table with deduplication
         let syncedCount = 0;
+        const bikingIds = [0, 11, 12, 13, 14, 15, 16, 49, 61];
+
         for (const workout of workouts) {
             // Mapping details as requested:
-            // - provider_activity_id: String(workout.id)
-            // - sport: ciclismo for biking (usually type 1), else other
-            // - duration_s: minutes * 60
+            // - 1 = running
+            // - [0, 11-16, 49, 61] = ciclismo
+            let sport = 'other';
+            if (workout.workout_type_id === 1) {
+                sport = 'running';
+            } else if (bikingIds.includes(workout.workout_type_id)) {
+                sport = 'ciclismo';
+            }
             const { error: upsertError } = await supabase.from('workouts').upsert({
                 user_id: user.id,
                 provider: 'wahoo',
                 provider_activity_id: String(workout.id),
-                sport: workout.workout_type_id === 1 ? 'ciclismo' : 'other',
+                sport: sport,
                 title: workout.name || 'Entreno de Wahoo',
                 start_dt: workout.starts,
                 duration_s: (workout.minutes || 0) * 60,
