@@ -2,52 +2,75 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, dbo, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Send, Bot, User as UserIcon, ChevronLeft } from 'lucide-react-native';
+import { planService } from '../services/planService';
 
-const MOCK_INITIAL_MESSAGES = [
-    { id: '1', role: 'coach', text: '¡Hola! Soy tu entrenador virtual. ¿Cómo te sientes para el entreno de hoy?' },
-];
+// const MOCK_INITIAL_MESSAGES = [ ... ]; // removed
+
 
 export default function CoachChatScreen({ navigation }) {
-    const [messages, setMessages] = useState(MOCK_INITIAL_MESSAGES);
+    const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef(null);
 
-    const sendMessage = () => {
+    useEffect(() => {
+        loadMessages();
+    }, []);
+
+    const loadMessages = async () => {
+        try {
+            const dbMessages = await planService.getCoachMessages();
+            const formatted = dbMessages.map(m => ({
+                id: m.id,
+                role: m.role === 'assistant' ? 'coach' : m.role, // Map assistant->coach for UI
+                text: m.content
+            }));
+            setMessages(formatted);
+        } catch (error) {
+            console.error("Failed to load chat:", error);
+        }
+    };
+
+    const sendMessage = async () => {
         if (!inputText.trim()) return;
 
+        const originalText = inputText.trim();
+        const tempId = Date.now().toString();
+
+        // Optimistic UI update
         const userMsg = {
-            id: Date.now().toString(),
+            id: tempId,
             role: 'user',
-            text: inputText.trim()
+            text: originalText
         };
 
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setIsTyping(true);
 
-        // Mock Coach Response
-        setTimeout(() => {
+        try {
+            const response = await planService.chatWithCoach(originalText);
+
+            // Response is saved in DB by the function, but we can display the returned text immediately
             const coachMsg = {
                 id: (Date.now() + 1).toString(),
                 role: 'coach',
-                text: getMockResponse(userMsg.text)
+                text: response.response || "No response"
             };
-            setMessages(prev => [...prev, coachMsg]);
-            setIsTyping(false);
-        }, 1500);
-    };
 
-    const getMockResponse = (input) => {
-        const lower = input.toLowerCase();
-        if (lower.includes('cansado') || lower.includes('fatiga')) return "Entendido. Si te sientes muy fatigado, considera reducir la intensidad a Z1 o tomar un día de descanso activo.";
-        if (lower.includes('dolor')) return "El dolor nunca es buena señal. ¿Es muscular o articular? Si persiste, mejor parar.";
-        if (lower.includes('gracias')) return "¡De nada! A darle caña.";
-        return "Tomo nota. Adaptaremos el plan según tu feedback. ¡Sigue así!";
+            setMessages(prev => [...prev, coachMsg]);
+        } catch (error) {
+            console.error("Chat error:", error);
+            // Optionally remove the optimistic message or show error
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     useEffect(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        if (messages.length > 0) {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }
     }, [messages, isTyping]);
 
     const renderItem = ({ item }) => {

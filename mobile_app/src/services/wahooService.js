@@ -28,8 +28,6 @@ export const wahooService = {
      */
     async exchangeCode(code) {
         try {
-            console.log("Exchanging code for tokens via Edge Function:", code);
-
             // 1. Get current session token
             const { data: sessionData } = await supabase.auth.getSession();
             const token = sessionData?.session?.access_token;
@@ -39,28 +37,32 @@ export const wahooService = {
                 throw new Error("No active session");
             }
 
-            // 2. Call Edge Function with explicit Authorization header + body fallback
+            // 2. Call Edge Function - Using body-token bypass for Gateway 401
             const { data, error } = await supabase.functions.invoke('wahoo-auth', {
                 body: {
                     code,
                     redirect_uri: REDIRECT_URI,
-                    access_token: token // Fallback if headers are stripped
-                },
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
+                    access_token: token
+                }
+                // Header-less call to avoid Gateway 401 interception
             });
 
             if (error) {
-                console.error("Edge Function Error:", error);
+                console.error("❌ Wahoo Auth Error:", error);
+                try {
+                    const errorData = await error.response.json();
+                    if (errorData.debug) {
+                        console.error("► Server Debug Info:", errorData.debug);
+                    }
+                } catch (e) { /* ignore parse errors */ }
                 throw error;
             }
 
-            console.log("Tokens exchange success via Edge Function");
+            console.log("► Wahoo account connected successfully.");
             return true;
         } catch (error) {
-            console.error('Wahoo Auth Error:', error);
-            throw error;
+            console.error("Wahoo exchangeCode Error:", error);
+            return false;
         }
     },
 

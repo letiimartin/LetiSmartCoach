@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MessageCircle, Sparkles } from 'lucide-react-native';
 import { useWorkouts } from '../context/WorkoutsContext';
 import WorkoutCard from '../components/WorkoutCard';
+import { planService } from '../services/planService';
 
 const FILTERS = ['Todos', 'Ciclismo', 'Running', 'Fuerza'];
 const TIME_FILTERS = [
@@ -11,20 +13,54 @@ const TIME_FILTERS = [
 ];
 
 export default function WorkoutsScreen({ navigation }) {
-    const { events, updateWorkoutStatus } = useWorkouts();
+    const { events, updateWorkoutStatus, refresh } = useWorkouts();
     const [activeFilter, setActiveFilter] = useState('Todos');
     const [timeFilter, setTimeFilter] = useState(7);
+    const [generating, setGenerating] = useState(false);
+
+    const handleGeneratePlan = async () => {
+        setGenerating(true);
+        try {
+            // Monday of this week
+            const d = new Date();
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(d.setDate(diff)).toISOString().split('T')[0];
+
+            await planService.generatePlan(monday);
+            Alert.alert("Plan Generado", "Tu semana de entrenamientos está lista.");
+            refresh();
+        } catch (error) {
+            console.error("DEBUG: Full Error Object:", error);
+            // Try to extract useful info if it's a Supabase error
+            let msg = error.message || "Unknown error";
+            if (error.context && error.context.json) {
+                // If the edge function returned a JSON body with the error
+                const body = await error.context.json();
+                console.log("DEBUG: EDGE FUNCTION ERROR BODY:", JSON.stringify(body, null, 2));
+                msg = body.hint || body.error || JSON.stringify(body);
+            } else if (typeof error === 'object') {
+                msg = JSON.stringify(error);
+            }
+            Alert.alert("Error Generando Plan", msg);
+        } finally {
+            setGenerating(false);
+        }
+    };
 
     const workouts = events.filter(e => e.type === 'workout');
 
-    // Filtering logic
+    // Filtering logic... (rest of the file)
+
+    // ... filtering code is below, I need to match the replacement content carefully or just replace the header part.
+    // The instructions say "Add imports... Add buttons... Implement handle".
+    // I'll assume I replace the imports and the component start up to the return header.
+
     const filteredWorkouts = workouts.filter(w => {
-        const matchesSport = activeFilter === 'Todos' || w.sport.toLowerCase() === activeFilter.toLowerCase();
-        // Mock time filtering logic (simplified)
+        const matchesSport = activeFilter === 'Todos' || (w.sport && w.sport.toLowerCase() === activeFilter.toLowerCase());
         return matchesSport;
     });
 
-    // Grouping by date
     const grouped = filteredWorkouts.reduce((acc, w) => {
         if (!acc[w.date]) acc[w.date] = [];
         acc[w.date].push(w);
@@ -46,8 +82,22 @@ export default function WorkoutsScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Tus Entrenos</Text>
-                <Text style={styles.subtitle}>Gestiona tu ejecución semanal</Text>
+                <View>
+                    <Text style={styles.title}>Tus Entrenos</Text>
+                    <Text style={styles.subtitle}>Gestiona tu ejecución semanal</Text>
+                </View>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity
+                        style={styles.iconBtn}
+                        onPress={handleGeneratePlan}
+                        disabled={generating}
+                    >
+                        {generating ? <ActivityIndicator color="#00f2ff" size="small" /> : <Sparkles size={24} color="#00f2ff" />}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('CoachChat')}>
+                        <MessageCircle size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Filtros */}
@@ -109,6 +159,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     title: {
         fontSize: 28,
@@ -119,6 +172,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#909090',
         marginTop: 4,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 12,
+        alignItems: 'center',
+    },
+    iconBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     filtersContainer: {
         marginBottom: 8,
