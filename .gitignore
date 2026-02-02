@@ -11,3 +11,4 @@ LetiSmartCoach_SRS_v1.0.docx
 *.md
 # But keep README.md
 !README.md
+supabase/.temp/

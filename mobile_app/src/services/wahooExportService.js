@@ -55,7 +55,7 @@ export const wahooExportService = {
 
             // 4. Build Wahoo Plan JSON
             const planJson = this.buildWahooPlan(session, ftp);
-            const base64Plan = btoa(JSON.stringify(planJson));
+            const base64Plan = this.encodeBase64(JSON.stringify(planJson));
 
             // 5. Create Plan in Wahoo
             console.log("[WahooExport] Creating Plan...");
@@ -83,11 +83,11 @@ export const wahooExportService = {
             // 6. Create Workout in Wahoo
             console.log("[WahooExport] Creating Workout...");
             // Map LetiSmartCoach sport to Wahoo workout_type_id
-            // 1: Cycling/Bike, 2: Running, etc. (Wahoo specific)
-            const workoutTypeId = session.sport?.toLowerCase() === 'running' ? 2 : 1;
+            // Cycling -> 0, Running -> 1
+            const workoutTypeId = session.sport?.toLowerCase() === 'running' ? 1 : 0;
 
-            // Format date to day_code (YYYYMMDD)
-            const dayCode = session.date.replace(/-/g, '');
+            // Format date to Wahoo day_code (days since 2020-01-01, where 2020-01-01 is 1)
+            const dayCode = this.toWahooDayCode(session.date);
 
             const workoutResponse = await fetch('https://api.wahooligan.com/v1/workouts', {
                 method: 'POST',
@@ -100,7 +100,7 @@ export const wahooExportService = {
                     'workout[workout_token]': `leti_${session.id}`,
                     'workout[workout_type_id]': workoutTypeId.toString(),
                     'workout[minutes]': Math.round((session.duration_s || 3600) / 60).toString(),
-                    'workout[day_code]': dayCode,
+                    'workout[day_code]': dayCode.toString(),
                     'workout[plan_id]': wahooPlanId.toString()
                 })
             });
@@ -140,6 +140,41 @@ export const wahooExportService = {
     },
 
     /**
+     * Calculates Wahoo day_code: days since 2020-01-01 (day 1).
+     * @param {string} dateStr - Date in YYYY-MM-DD format.
+     */
+    toWahooDayCode(dateStr) {
+        const targetDate = new Date(dateStr);
+        const startDate = new Date('2020-01-01');
+
+        // Reset hours to ensure clean day calculation
+        targetDate.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(targetDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays + 1;
+    },
+
+    /**
+     * RN-compatible Base64 encoding.
+     * Uses a simple JS implementation to avoid browser-only btoa.
+     */
+    encodeBase64(str) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+        let output = '';
+        for (let block = 0, charCode, i = 0, map = chars;
+            str.charAt(i | 0) || (map = '=', i % 1);
+            output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
+            charCode = str.charCodeAt(i += 3 / 4);
+            if (charCode > 0xFF) throw new Error("'encodeBase64' failed: The string to be encoded contains characters outside of the Latin1 range.");
+            block = block << 8 | charCode;
+        }
+        return output;
+    },
+
+    /**
      * Maps internal structure_json to Wahoo Plan JSON format.
      */
     buildWahooPlan(session, ftp) {
@@ -153,7 +188,6 @@ export const wahooExportService = {
             const targets = [];
 
             // Map target_type (Zone, Power, etc.) to Wahoo format
-            // Wahoo uses relative power (0.0 to 1.0 of FTP if relative)
             if (step.target_type === 'Power' || (step.target_max && typeof step.target_max === 'number')) {
                 targets.push({
                     type: 'power',
@@ -161,8 +195,6 @@ export const wahooExportService = {
                     high: (step.target_max || step.target_min || 0) / ftp
                 });
             } else if (step.target_type === 'Zone' || typeof step.target_max === 'string') {
-                // Simplistic zone mapping for MVP
-                // Z1: 0-55%, Z2: 56-75%, Z3: 76-90%, Z4: 91-105%, Z5: >106%
                 const zones = {
                     'Z1': [0, 0.55],
                     'Z2': [0.56, 0.75],
@@ -185,7 +217,6 @@ export const wahooExportService = {
             };
         });
 
-        // Wahoo Plan Format
         return {
             name: title,
             description: description,
