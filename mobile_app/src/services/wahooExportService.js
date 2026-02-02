@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { encode as b64encode } from 'base-64';
 
 export const wahooExportService = {
     /**
@@ -55,7 +56,7 @@ export const wahooExportService = {
 
             // 4. Build Wahoo Plan JSON
             const planJson = this.buildWahooPlan(session, ftp);
-            const base64Plan = this.encodeBase64(JSON.stringify(planJson));
+            const base64Plan = b64encode(unescape(encodeURIComponent(JSON.stringify(planJson))));
 
             // 5. Create Plan in Wahoo
             console.log("[WahooExport] Creating Plan...");
@@ -155,23 +156,6 @@ export const wahooExportService = {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         return diffDays + 1;
-    },
-
-    /**
-     * RN-compatible Base64 encoding.
-     * Uses a simple JS implementation to avoid browser-only btoa.
-     */
-    encodeBase64(str) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-        let output = '';
-        for (let block = 0, charCode, i = 0, map = chars;
-            str.charAt(i | 0) || (map = '=', i % 1);
-            output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
-            charCode = str.charCodeAt(i += 3 / 4);
-            if (charCode > 0xFF) throw new Error("'encodeBase64' failed: The string to be encoded contains characters outside of the Latin1 range.");
-            block = block << 8 | charCode;
-        }
-        return output;
     },
 
     /**
